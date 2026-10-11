@@ -1,0 +1,28 @@
+name: excelerate_talent_hub
+description: Private talent development and recruitment platform.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.5+1
+  http: ^1.2.2
+  shared_preferences: ^2.3.3
+  file_picker: ^8.1.7
+  flutter_svg: ^2.0.17
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
