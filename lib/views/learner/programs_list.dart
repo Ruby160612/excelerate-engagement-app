@@ -6,9 +6,11 @@ class ProgramsListView extends StatelessWidget {
   const ProgramsListView({super.key});
   @override
   Widget build(BuildContext context) => ApiCollectionView(
-    title: 'Development programs', path: '/programs',
-    emptyMessage: 'New development programs will appear here.',
-    itemBuilder: (item) => AppCard(title: item['title'] as String,
-      subtitle: item['description'] as String? ?? ''),
-  );
+        title: 'Development programs',
+        path: '/programs',
+        emptyMessage: 'New development programs will appear here.',
+        itemBuilder: (item) => AppCard(
+            title: item['title'] as String,
+            subtitle: item['description'] as String? ?? ''),
+      );
 }

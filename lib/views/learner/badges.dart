@@ -7,8 +7,9 @@ class BadgesView extends StatelessWidget {
   const BadgesView({super.key});
   @override
   Widget build(BuildContext context) => ApiCollectionView(
-    title: 'Your badges', path: '/badges/me',
-    emptyMessage: 'Your earned badges will appear here.',
-    itemBuilder: (item) => BadgeWidget(badge: TalentBadge.fromJson(item)),
-  );
+        title: 'Your badges',
+        path: '/badges/me',
+        emptyMessage: 'Your earned badges will appear here.',
+        itemBuilder: (item) => BadgeWidget(badge: TalentBadge.fromJson(item)),
+      );
 }

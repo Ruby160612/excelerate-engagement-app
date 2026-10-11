@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class AppButton extends StatelessWidget {
-  const AppButton({super.key, required this.label, this.onPressed,
-    this.loading = false});
+  const AppButton(
+      {super.key, required this.label, this.onPressed, this.loading = false});
   final String label;
   final VoidCallback? onPressed;
   final bool loading;
@@ -11,7 +11,9 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) => FilledButton(
         onPressed: loading ? null : onPressed,
         child: loading
-            ? const SizedBox(width: 20, height: 20,
+            ? const SizedBox(
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2))
             : Text(label),
       );

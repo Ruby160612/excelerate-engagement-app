@@ -24,7 +24,8 @@ class ApiService {
 
   Uri _uri(String path) {
     final base = Uri.tryParse(baseUrl);
-    if (base == null || !base.hasAuthority ||
+    if (base == null ||
+        !base.hasAuthority ||
         !{'http', 'https'}.contains(base.scheme)) {
       throw const ApiException(
         'The service is not configured. Please contact your administrator.',
@@ -41,24 +42,28 @@ class ApiService {
       };
 
   Future<dynamic> get(String path) async => _decode(
-        await _client.get(_uri(path), headers: _headers)
+        await _client
+            .get(_uri(path), headers: _headers)
             .timeout(AppConstants.requestTimeout),
       );
 
   Future<dynamic> post(String path, Map<String, dynamic> body) async => _decode(
-        await _client.post(_uri(path), headers: _headers, body: jsonEncode(body))
+        await _client
+            .post(_uri(path), headers: _headers, body: jsonEncode(body))
             .timeout(AppConstants.requestTimeout),
       );
 
   Future<dynamic> put(String path, Map<String, dynamic> body) async => _decode(
-        await _client.put(_uri(path), headers: _headers, body: jsonEncode(body))
+        await _client
+            .put(_uri(path), headers: _headers, body: jsonEncode(body))
             .timeout(AppConstants.requestTimeout),
       );
 
   Future<void> uploadCv(String filename, Uint8List bytes) async {
     final extension = filename.split('.').last.toLowerCase();
     if (!{'pdf', 'doc', 'docx'}.contains(extension) ||
-        bytes.isEmpty || bytes.length > AppConstants.maxCvBytes) {
+        bytes.isEmpty ||
+        bytes.length > AppConstants.maxCvBytes) {
       throw const ApiException('Choose a PDF, DOC, or DOCX file up to 5 MB.');
     }
     final request = http.MultipartRequest('POST', _uri('/profiles/me/cv'))
@@ -66,11 +71,13 @@ class ApiService {
         'Accept': 'application/json',
         if (sessionToken != null) 'Authorization': 'Bearer $sessionToken',
       })
-      ..files.add(http.MultipartFile.fromBytes('cv', bytes, filename: filename));
+      ..files
+          .add(http.MultipartFile.fromBytes('cv', bytes, filename: filename));
     final response = await (() async {
       final stream = await _client.send(request);
       return http.Response.fromStream(stream);
-    })().timeout(AppConstants.requestTimeout);
+    })()
+        .timeout(AppConstants.requestTimeout);
     _decode(response);
   }
 

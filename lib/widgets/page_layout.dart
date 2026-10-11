@@ -14,7 +14,8 @@ class PageLayout extends StatelessWidget {
         appBar: AppBar(title: Text(title), actions: [
           if (context.watch<AuthService>().user != null)
             IconButton(
-              tooltip: 'Sign out', icon: const Icon(Icons.logout),
+              tooltip: 'Sign out',
+              icon: const Icon(Icons.logout),
               onPressed: () async {
                 try {
                   await context.read<AuthService>().logout();
@@ -27,17 +28,19 @@ class PageLayout extends StatelessWidget {
                   }
                 }
                 if (context.mounted) {
-                  Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home,
-                      (_) => false);
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, AppRoutes.home, (_) => false);
                 }
               },
             ),
         ]),
-        body: SafeArea(child: Align(
+        body: SafeArea(
+            child: Align(
           alignment: Alignment.topCenter,
-          child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900),
-            child: SingleChildScrollView(padding: const EdgeInsets.all(24),
-              child: child)),
+          child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24), child: child)),
         )),
       );
 }

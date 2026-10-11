@@ -1,11 +1,11 @@
 {
-    "name": "excelerate_talent_hub",
-    "short_name": "excelerate_talent_hub",
+    "name": "Excelerate Talent Hub",
+    "short_name": "Excelerate",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#3155A4",
+    "theme_color": "#3155A4",
+    "description": "Private talent development and recruitment platform.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -18,19 +18,32 @@ class _CvUploadViewState extends State<CvUploadView> {
   String? _message;
 
   Future<void> _pick() async {
-    setState(() { _busy = true; _message = null; });
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
     try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx'], withData: true);
+      final result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf', 'doc', 'docx'],
+          withData: true);
       if (!mounted || result == null) return;
       final file = result.files.single;
-      if (file.size == 0 || file.size > AppConstants.maxCvBytes || file.bytes == null) {
-        setState(() { _file = null; _message = 'Choose a file up to 5 MB.'; });
+      if (file.size == 0 ||
+          file.size > AppConstants.maxCvBytes ||
+          file.bytes == null) {
+        setState(() {
+          _file = null;
+          _message = 'Choose a file up to 5 MB.';
+        });
       } else {
         setState(() => _file = file);
       }
     } catch (_) {
-      if (mounted) setState(() => _message = 'Unable to open the file picker. Please try again.');
+      if (mounted) {
+        setState(() =>
+            _message = 'Unable to open the file picker. Please try again.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -39,27 +52,51 @@ class _CvUploadViewState extends State<CvUploadView> {
   Future<void> _upload() async {
     final file = _file;
     if (file?.bytes == null) return;
-    setState(() { _busy = true; _message = null; });
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
     try {
       await context.read<ApiService>().uploadCv(file!.name, file.bytes!);
-      if (mounted) setState(() { _file = null; _message = 'Your CV was uploaded successfully.'; });
+      if (mounted) {
+        setState(() {
+          _file = null;
+          _message = 'Your CV was uploaded successfully.';
+        });
+      }
     } catch (_) {
-      if (mounted) setState(() => _message = 'Unable to upload your CV. Please try again.');
+      if (mounted) {
+        setState(
+            () => _message = 'Unable to upload your CV. Please try again.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) => PageLayout(title: 'Upload your CV',
-    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const Text('Choose your latest CV in PDF, DOC, or DOCX format. Maximum size: 5 MB.'),
-      const SizedBox(height: 24),
-      OutlinedButton.icon(onPressed: _busy ? null : _pick,
-        icon: const Icon(Icons.attach_file), label: const Text('Choose CV')),
-      if (_file != null) Padding(padding: const EdgeInsets.all(16), child: Text(_file!.name)),
-      AppButton(label: 'Upload CV', loading: _busy, onPressed: _file == null ? null : _upload),
-      if (_message != null) Padding(padding: const EdgeInsets.only(top: 16), child: Text(_message!)),
-    ]),
-  );
+  Widget build(BuildContext context) => PageLayout(
+        title: 'Upload your CV',
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Text(
+              'Choose your latest CV in PDF, DOC, or DOCX format. Maximum size: 5 MB.'),
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+              onPressed: _busy ? null : _pick,
+              icon: const Icon(Icons.attach_file),
+              label: const Text('Choose CV')),
+          if (_file != null)
+            Padding(
+                padding: const EdgeInsets.all(16), child: Text(_file!.name)),
+          AppButton(
+              label: 'Upload CV',
+              loading: _busy,
+              onPressed: _file == null ? null : _upload),
+          if (_message != null)
+            Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(_message!)),
+        ]),
+      );
 }

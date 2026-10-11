@@ -33,7 +33,9 @@ class AuthService extends ChangeNotifier {
       _initializationError = 'Your saved session could not be restored. '
           'Please sign in again.';
       if (error is ApiException && error.statusCode == 401) {
-        try { await _storage.clearSession(); } catch (_) { /* Retry on login. */ }
+        try {
+          await _storage.clearSession();
+        } catch (_) {/* Retry on login. */}
       }
     } finally {
       _initialized = true;
@@ -43,21 +45,26 @@ class AuthService extends ChangeNotifier {
 
   Future<void> login(String email, String password) async {
     await _acceptSession(await _api.post('/auth/login', {
-      'email': email.trim(), 'password': password,
+      'email': email.trim(),
+      'password': password,
     }) as Map<String, dynamic>);
   }
 
-  Future<void> signup(String name, String email, String password,
-      String invitationCode) async {
+  Future<void> signup(
+      String name, String email, String password, String invitationCode) async {
     await _acceptSession(await _api.post('/auth/signup', {
-      'name': name.trim(), 'email': email.trim(), 'password': password,
+      'name': name.trim(),
+      'email': email.trim(),
+      'password': password,
       'invitation_code': invitationCode.trim(),
     }) as Map<String, dynamic>);
   }
 
   Future<void> _acceptSession(Map<String, dynamic> data) async {
     final token = data['token'] as String;
-    if (token.isEmpty) throw const ApiException('The session token is missing.');
+    if (token.isEmpty) {
+      throw const ApiException('The session token is missing.');
+    }
     final user = AppUser.fromJson(data['user'] as Map<String, dynamic>);
     await _storage.saveSession(token);
     _api.sessionToken = token;
@@ -69,7 +76,8 @@ class AuthService extends ChangeNotifier {
   Future<void> createProfile(Profile profile) async {
     await _api.put('/profiles/me', profile.toJson());
     // Refresh authoritative user state after the server completes onboarding.
-    _user = AppUser.fromJson(await _api.get('/auth/me') as Map<String, dynamic>);
+    _user =
+        AppUser.fromJson(await _api.get('/auth/me') as Map<String, dynamic>);
     notifyListeners();
   }
 
