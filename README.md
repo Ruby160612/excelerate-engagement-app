@@ -16,10 +16,29 @@ flutter run -d chrome --dart-define=API_BASE_URL=https://your-api.example.com/ap
 ```
 
 The login screen runs without a backend. Authentication and data operations
-require your API; there are no embedded demo accounts or credentials. Replace
-`API_BASE_URL` with your server, including its API prefix. Use HTTPS; a web backend
-must allow the application's origin through its CORS configuration. `dart-define`
-values are compiled into the application and must not contain secrets.
+require your API; outside mock mode there are no embedded demo accounts or
+credentials. Replace `API_BASE_URL` with your server, including its API prefix.
+Use HTTPS; a web backend must allow the application's origin through its CORS
+configuration. `dart-define` values are compiled into the application and must
+not contain secrets.
+
+## Mock mode
+
+To run without a backend, start the app with `USE_MOCK=true`. Requests are
+answered in memory with sample programs and test accounts, and data resets when
+the app restarts. The flag is off by default.
+
+```sh
+flutter run -d chrome --dart-define=USE_MOCK=true
+```
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Learner (completes onboarding first) | learner@example.com | learner123 |
+| Learner (profile completed) | member@example.com | member123 |
+| Admin | admin@example.com | admin123 |
+
+The signup invitation code in mock mode is `EXCEL2026`.
 
 ## Structure
 
@@ -29,6 +48,7 @@ lib/
   models/
     user.dart
     profile.dart
+    program.dart
     job_opportunity.dart
     assessment.dart
     badge.dart
@@ -44,6 +64,8 @@ lib/
       assessments.dart
       badges.dart
       applications.dart
+    shared/
+      program_details.dart
     admin/
       post_opportunity.dart
       application_review.dart
@@ -53,10 +75,13 @@ lib/
     api_service.dart
     auth_service.dart
     storage_service.dart
+    mock_api.dart
+    mock_data.dart
   widgets/
     app_button.dart
     app_card.dart
     badge_widget.dart
+    program_card.dart
     page_layout.dart
     auth_form.dart
     api_form.dart
@@ -94,7 +119,9 @@ requests use `Content-Type: application/json`. Authenticated requests include
 | GET | `/auth/me` | Returns the current user; `401` for an expired/invalid session |
 | PUT | `/profiles/me` | Profile JSON; successful save marks onboarding complete |
 | POST | `/profiles/me/cv` | Multipart `cv` field; accepts PDF/DOC/DOCX up to 5 MB; returns JSON or `204` |
-| GET | `/programs` | Array of `{id, title, description}` |
+| GET | `/programs` | Array of program JSON; `is_registered` reflects the signed-in user |
+| GET | `/programs/:id` | One program JSON; `404` if it does not exist |
+| POST | `/programs/:id/register` | Learner only; returns the program with `is_registered: true`; `403` for admins |
 | GET | `/assessments/me` | Array of assessment JSON objects |
 | GET | `/badges/me` | Array of badge JSON objects |
 | GET | `/applications/me` | Array of `{id, opportunity_title, status, created_at}` |
@@ -108,13 +135,19 @@ User JSON: `{id, name, email, role, profile_completed}`. Role is `learner` or
 `admin`. Profile JSON: `{user_id, headline, bio, skills, cv_url}`. Skills are an
 array of strings. Assessment JSON: `{id, title, duration_minutes, completed,
 score}`; score may be null. Badge JSON: `{id, name, description, earned_at}`;
-earned date may be null. Job JSON matches the opportunity request plus `id`.
+earned date may be null. Job JSON matches the opportunity request plus `id`. Program JSON: `{id, title,
+description, start_date, end_date, schedule, eligibility, outcomes, category,
+image_url, is_registered}`; `end_date` and `image_url` may be null,
+`eligibility` and `outcomes` are arrays of strings, and `category` is `course`,
+`workshop`, `webinar` or `internship`.
 Dates are ISO 8601; date/time submissions use UTC and displays use device-local
 time. A deadline is the end of the selected day in the device's timezone.
 
-Programs, assessments, and learner applications provide initial list screens.
-Program enrollment, assessment questions/submission, opportunity browsing and
-application submission can be added using the models and API service. Admin
+Assessments and learner applications provide initial list screens. Programs have
+a searchable listing with category filters and learner registration, and each
+card opens a details screen for learners and admins (currently a placeholder).
+Assessment questions/submission, opportunity browsing and application
+submission can be added using the models and API service. Admin
 review currently shows a submission summary and a shortlist action; detailed
 candidate/CV review can be added as a separate screen.
 
@@ -145,6 +178,7 @@ flutter build web --dart-define=API_BASE_URL=https://your-api.example.com/api
 ```
 
 Tests exercise invitation form validation, protected routing, role checks,
-session restoration/expiry/logout, HTTP error handling, and CV validation.
+session restoration/expiry/logout, HTTP error handling, CV validation, and the
+program model, mock API, listing and routes.
 API tests use mock HTTP responses; they do not establish live backend
 compatibility or exercise native file-picker dialogs.

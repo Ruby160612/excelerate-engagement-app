@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
+import 'services/mock_api.dart';
 import 'services/storage_service.dart';
 import 'utils/app_router.dart';
 import 'utils/constants.dart';
@@ -14,23 +16,30 @@ import 'utils/themes.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final preferences = await SharedPreferences.getInstance();
-  runApp(ExcelerateApp(preferences: preferences));
+  runApp(AppConstants.useMock
+      ? ExcelerateApp(
+          preferences: preferences,
+          apiBaseUrl: MockApi.baseUrl,
+          apiClient: MockApi().client)
+      : ExcelerateApp(preferences: preferences));
 }
 
 class ExcelerateApp extends StatelessWidget {
   const ExcelerateApp(
       {super.key,
       required this.preferences,
-      this.apiBaseUrl = AppConstants.apiBaseUrl});
+      this.apiBaseUrl = AppConstants.apiBaseUrl,
+      this.apiClient});
   final SharedPreferences preferences;
   final String apiBaseUrl;
+  final http.Client? apiClient;
 
   @override
   Widget build(BuildContext context) => MultiProvider(
         providers: [
           Provider<StorageService>(create: (_) => StorageService(preferences)),
           Provider<ApiService>(
-              create: (_) => ApiService(baseUrl: apiBaseUrl),
+              create: (_) => ApiService(baseUrl: apiBaseUrl, client: apiClient),
               dispose: (_, api) => api.dispose()),
           ChangeNotifierProvider<AuthService>(create: (context) {
             final auth = AuthService(

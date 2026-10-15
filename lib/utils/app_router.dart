@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/program.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../views/admin/application_review.dart';
@@ -15,10 +16,16 @@ import '../views/learner/badges.dart';
 import '../views/learner/cv_upload.dart';
 import '../views/learner/dashboard.dart';
 import '../views/learner/programs_list.dart';
+import '../views/shared/program_details.dart';
 import '../widgets/page_layout.dart';
 import 'constants.dart';
 
 abstract final class AppRouter {
+  static const _notFound = PageLayout(
+      title: 'Page not found',
+      child:
+          Text('This page is unavailable. Please return to your dashboard.'));
+
   static Route<dynamic> generate(RouteSettings settings) {
     final Widget screen;
     switch (settings.name) {
@@ -35,8 +42,12 @@ abstract final class AppRouter {
       case AppRoutes.cvUpload:
         screen = const AuthGuard(role: UserRole.learner, child: CvUploadView());
       case AppRoutes.programs:
-        screen =
-            const AuthGuard(role: UserRole.learner, child: ProgramsListView());
+        screen = const AuthGuard(child: ProgramsListView());
+      case AppRoutes.programDetails:
+        final program = settings.arguments;
+        screen = program is Program
+            ? AuthGuard(child: ProgramDetailsView(program: program))
+            : _notFound;
       case AppRoutes.assessments:
         screen =
             const AuthGuard(role: UserRole.learner, child: AssessmentsView());
@@ -62,10 +73,7 @@ abstract final class AppRouter {
                     ? settings.arguments as String
                     : null));
       default:
-        screen = const PageLayout(
-            title: 'Page not found',
-            child: Text(
-                'This page is unavailable. Please return to your dashboard.'));
+        screen = _notFound;
     }
     return MaterialPageRoute<void>(settings: settings, builder: (_) => screen);
   }
