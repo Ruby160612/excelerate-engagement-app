@@ -106,6 +106,13 @@ class MockApi {
         return http.Response('', 204);
       case 'GET /programs':
         return _json([for (final p in _programsFor(account)) p.toJson()]);
+      case 'GET /announcements':
+        return _json([
+          for (final announcement in mockAnnouncements)
+            if (announcement['audience'] == 'all' ||
+                announcement['audience'] == account.role.name)
+              announcement,
+        ]);
       case 'GET /assessments/me':
       case 'GET /badges/me':
       case 'GET /applications/me':

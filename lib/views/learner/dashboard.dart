@@ -1,94 +1,86 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/page_layout.dart';
+import '../../widgets/dashboard_announcements.dart';
+import '../../widgets/dashboard_layout.dart';
+import '../../widgets/dashboard_overview.dart';
 
 class DashboardView extends StatelessWidget {
   const DashboardView({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    final user = context.watch<AuthService>().user!;
-    final admin = user.role == UserRole.admin;
-    final links = admin
-        ? <(String, String, String, IconData)>[
-            (
-              'Post an opportunity',
-              'Connect talent to a new role',
-              AppRoutes.postOpportunity,
-              Icons.work_outline
-            ),
-            (
-              'Review applications',
-              'View candidate submissions',
-              AppRoutes.applicationReview,
-              Icons.inbox_outlined
-            ),
-            (
-              'Candidate shortlist',
-              'View candidates selected for interview',
-              AppRoutes.candidateShortlisting,
-              Icons.people_outline
-            ),
-            (
-              'Schedule an interview',
-              'Arrange the next conversation',
-              AppRoutes.interviewScheduler,
-              Icons.calendar_month_outlined
-            ),
-          ]
-        : <(String, String, String, IconData)>[
-            (
-              'Upload your CV',
-              'Share your experience with recruiters',
-              AppRoutes.cvUpload,
-              Icons.upload_file_outlined
-            ),
-            (
-              'Development programs',
-              'Discover learning opportunities',
-              AppRoutes.programs,
-              Icons.school_outlined
-            ),
-            (
-              'Assessments',
-              'Explore your strengths and progress',
-              AppRoutes.assessments,
-              Icons.quiz_outlined
-            ),
-            (
-              'Your badges',
-              'Celebrate your achievements',
-              AppRoutes.badges,
-              Icons.workspace_premium_outlined
-            ),
-            (
-              'Your applications',
-              'Follow your recruitment journey',
-              AppRoutes.applications,
-              Icons.work_outline
-            ),
-          ];
-    return PageLayout(
-      title: admin ? 'Recruitment workspace' : 'Talent dashboard',
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('Hello, ${user.name}',
-            style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(height: 8),
-        Text(admin
-            ? 'Help your next great hire take the next step.'
-            : 'Build your skills and take the next step in your career.'),
-        const SizedBox(height: 24),
-        for (final link in links)
-          AppCard(
-              title: link.$1,
-              subtitle: link.$2,
-              icon: link.$4,
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.pushNamed(context, link.$3)),
-      ]),
-    );
-  }
+  Widget build(BuildContext context) => DashboardLayout(
+        title: 'Talent dashboard',
+        workspace: 'YOUR LEARNING JOURNEY',
+        name: context.watch<AuthService>().user!.name,
+        introduction:
+            'Build your skills and take the next step in your career.',
+        announcements: const DashboardAnnouncements(role: UserRole.learner),
+        primaryAction: const DashboardAction(
+          title: 'Explore programs',
+          description: 'Find your next learning opportunity.',
+          route: AppRoutes.programs,
+          icon: Icons.school_outlined,
+        ),
+        overview: const DashboardOverview(metrics: [
+          DashboardMetric(
+            label: 'Registered programs',
+            path: '/programs',
+            route: AppRoutes.programs,
+            icon: Icons.school_outlined,
+            filterField: 'is_registered',
+            filterValue: true,
+          ),
+          DashboardMetric(
+            label: 'Your badges',
+            path: '/badges/me',
+            route: AppRoutes.badges,
+            icon: Icons.workspace_premium_outlined,
+          ),
+          DashboardMetric(
+            label: 'Your applications',
+            path: '/applications/me',
+            route: AppRoutes.applications,
+            icon: Icons.work_outline,
+          ),
+        ]),
+        actionsTitle: 'Your next steps',
+        actions: const [
+          DashboardAction(
+            title: 'Development programs',
+            description:
+                'Discover courses, workshops and career opportunities.',
+            route: AppRoutes.programs,
+            icon: Icons.school_outlined,
+          ),
+          DashboardAction(
+            title: 'Upload your CV',
+            description: 'Share your experience with recruiters.',
+            route: AppRoutes.cvUpload,
+            icon: Icons.upload_file_outlined,
+          ),
+          DashboardAction(
+            title: 'Assessments',
+            description: 'Explore your strengths and track your progress.',
+            route: AppRoutes.assessments,
+            icon: Icons.quiz_outlined,
+          ),
+          DashboardAction(
+            title: 'Your badges',
+            description:
+                'Celebrate the skills and achievements you have earned.',
+            route: AppRoutes.badges,
+            icon: Icons.workspace_premium_outlined,
+          ),
+          DashboardAction(
+            title: 'Your applications',
+            description: 'Follow the progress of your submitted applications.',
+            route: AppRoutes.applications,
+            icon: Icons.work_outline,
+          ),
+        ],
+      );
 }

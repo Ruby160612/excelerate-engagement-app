@@ -5,6 +5,7 @@ import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../views/admin/application_review.dart';
 import '../views/admin/candidate_shortlisting.dart';
+import '../views/admin/dashboard.dart';
 import '../views/admin/interview_scheduler.dart';
 import '../views/admin/post_opportunity.dart';
 import '../views/auth/login.dart';
@@ -38,7 +39,11 @@ abstract final class AppRouter {
         screen = const AuthGuard(
             allowIncompleteProfile: true, child: ProfileCreationView());
       case AppRoutes.dashboard:
-        screen = const AuthGuard(child: DashboardView());
+        screen =
+            const AuthGuard(role: UserRole.learner, child: DashboardView());
+      case AppRoutes.adminDashboard:
+        screen =
+            const AuthGuard(role: UserRole.admin, child: AdminDashboardView());
       case AppRoutes.cvUpload:
         screen = const AuthGuard(role: UserRole.learner, child: CvUploadView());
       case AppRoutes.programs:
@@ -92,7 +97,9 @@ class SessionGate extends StatelessWidget {
     if (auth.user!.role == UserRole.learner && !auth.user!.profileCompleted) {
       return const ProfileCreationView();
     }
-    return const DashboardView();
+    return auth.user!.role == UserRole.admin
+        ? const AdminDashboardView()
+        : const DashboardView();
   }
 }
 
