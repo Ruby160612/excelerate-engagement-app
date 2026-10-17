@@ -114,10 +114,12 @@ class _AuthFormState extends State<AuthForm> {
                         decoration:
                             const InputDecoration(labelText: 'Password'),
                         validator: (value) {
-                          if (value == null || value.isEmpty)
+                          if (value == null || value.isEmpty) {
                             return 'Enter your password';
-                          if (widget.signup && value.length < 8)
+                          }
+                          if (widget.signup && value.length < 8) {
                             return 'Use at least 8 characters';
+                          }
                           return null;
                         }),
                     if (widget.signup) ...[

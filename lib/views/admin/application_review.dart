@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/api_service.dart';
+import '../../utils/themes.dart';
 import '../../widgets/api_collection_view.dart';
+import '../../widgets/status_badge.dart';
 
 class ApplicationReviewView extends StatelessWidget {
   const ApplicationReviewView({super.key});
+
   @override
   Widget build(BuildContext context) => ApiCollectionView(
         title: 'Review applications',
@@ -17,6 +21,7 @@ class ApplicationReviewView extends StatelessWidget {
 class ApplicationReviewCard extends StatefulWidget {
   const ApplicationReviewCard({super.key, required this.application});
   final Map<String, dynamic> application;
+
   @override
   State<ApplicationReviewCard> createState() => _ApplicationReviewCardState();
 }
@@ -24,6 +29,7 @@ class ApplicationReviewCard extends StatefulWidget {
 class _ApplicationReviewCardState extends State<ApplicationReviewCard> {
   bool _busy = false;
   late String _status;
+
   @override
   void initState() {
     super.initState();
@@ -50,18 +56,109 @@ class _ApplicationReviewCardState extends State<ApplicationReviewCard> {
   }
 
   @override
-  Widget build(BuildContext context) => Card(
-          child: Padding(
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final candidateName = widget.application['candidate_name'] as String;
+    final isShortlisted = _status == 'shortlisted';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(widget.application['candidate_name'] as String,
-              style: Theme.of(context).textTheme.titleMedium),
-          Text('${widget.application['opportunity_title']} • $_status'),
-          Text('Application reference: ${widget.application['id']}'),
-          const SizedBox(height: 8),
-          FilledButton(
-              onPressed: _busy || _status == 'shortlisted' ? null : _shortlist,
-              child: Text(_busy ? 'Saving…' : 'Shortlist candidate')),
-        ]),
-      ));
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.primaryLight,
+                  foregroundColor: AppColors.primary,
+                  radius: 20,
+                  child: Text(
+                    candidateName.isNotEmpty ? candidateName[0].toUpperCase() : '?',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        candidateName,
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${widget.application['opportunity_title']} • $_status',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isShortlisted)
+                  const StatusBadge.success(
+                    label: 'Shortlisted',
+                    icon: Icons.check_circle_outline,
+                  )
+                else
+                  const StatusBadge.info(
+                    label: 'Under Review',
+                    icon: Icons.pending_outlined,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: Text(
+                'Application reference: ${widget.application['id']}',
+                style: theme.textTheme.labelMedium
+                    ?.copyWith(color: AppColors.textMuted),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                icon: Icon(
+                  isShortlisted ? Icons.check : Icons.star_outline,
+                  size: 18,
+                ),
+                onPressed: _busy || isShortlisted ? null : _shortlist,
+                style: FilledButton.styleFrom(
+                  backgroundColor:
+                      isShortlisted ? AppColors.success : AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                label: Text(
+                  _busy
+                      ? 'Saving…'
+                      : isShortlisted
+                          ? 'Shortlisted'
+                          : 'Shortlist candidate',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
