@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+
 import '../../models/assessment.dart';
 import '../../widgets/api_collection_view.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/status_badge.dart';
 
 class AssessmentsView extends StatelessWidget {
   const AssessmentsView({super.key});
+
   @override
   Widget build(BuildContext context) => ApiCollectionView(
         title: 'Assessments',
@@ -13,11 +16,21 @@ class AssessmentsView extends StatelessWidget {
         itemBuilder: (item) {
           final assessment = Assessment.fromJson(item);
           return AppCard(
-              title: assessment.title,
-              subtitle: '${assessment.durationMinutes} minutes • '
-                  '${assessment.completed ? 'Completed' : 'Pending'}'
-                  '${assessment.score == null ? '' : ' • Score: ${assessment.score}'}',
-              icon: Icons.quiz_outlined);
+            title: assessment.title,
+            subtitle: '${assessment.durationMinutes} minutes • '
+                '${assessment.completed ? 'Completed' : 'Pending'}'
+                '${assessment.score == null ? '' : ' • Score: ${assessment.score}'}',
+            statusBadge: assessment.completed
+                ? const StatusBadge.success(
+                    label: 'Completed',
+                    icon: Icons.check_circle_outline,
+                  )
+                : const StatusBadge.warning(
+                    label: 'Pending',
+                    icon: Icons.hourglass_empty_outlined,
+                  ),
+            icon: Icons.quiz_outlined,
+          );
         },
       );
 }
