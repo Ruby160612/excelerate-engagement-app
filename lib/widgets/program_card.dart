@@ -27,8 +27,8 @@ class ProgramCard extends StatelessWidget {
       surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFE2E5ED)),
       ),
       child: InkWell(
         onTap: onTap,
@@ -132,10 +132,10 @@ class _Thumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final placeholder = ColoredBox(
-      color: Colors.grey.shade100,
+      color: const Color(0xFFFFF0E8),
       child: Center(
         child: Icon(_icon(program.category),
-            size: size * 0.45, color: Colors.grey.shade600),
+            size: size * 0.45, color: const Color(0xFFFF4500)),
       ),
     );
     final url = program.imageUrl;

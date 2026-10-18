@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../services/api_service.dart';
+import '../utils/themes.dart';
 import 'app_button.dart';
 import 'page_layout.dart';
 
 class ApiForm extends StatefulWidget {
-  const ApiForm(
-      {super.key,
-      required this.title,
-      required this.path,
-      required this.fields,
-      required this.dateKey,
-      required this.dateLabel,
-      required this.submitLabel,
-      required this.successMessage,
-      this.includeTime = false,
-      this.initialValues = const {}});
+  const ApiForm({
+    super.key,
+    required this.title,
+    required this.path,
+    required this.fields,
+    required this.dateKey,
+    required this.dateLabel,
+    required this.submitLabel,
+    required this.successMessage,
+    this.includeTime = false,
+    this.initialValues = const {},
+  });
+
   final String title;
   final String path;
   final Map<String, String> fields;
@@ -26,6 +30,7 @@ class ApiForm extends StatefulWidget {
   final String successMessage;
   final bool includeTime;
   final Map<String, String> initialValues;
+
   @override
   State<ApiForm> createState() => _ApiFormState();
 }
@@ -36,6 +41,8 @@ class _ApiFormState extends State<ApiForm> {
   DateTime? _date;
   bool _busy = false;
   String? _message;
+  bool _isSuccess = false;
+
   @override
   void initState() {
     super.initState();
@@ -73,6 +80,7 @@ class _ApiFormState extends State<ApiForm> {
       setState(() {
         _date = selected;
         _message = null;
+        _isSuccess = false;
       });
     }
   }
@@ -80,8 +88,11 @@ class _ApiFormState extends State<ApiForm> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_date == null || !_date!.isAfter(DateTime.now())) {
-      setState(() => _message =
-          'Choose a date${widget.includeTime ? ' and time' : ''} in the future.');
+      setState(() {
+        _message =
+            'Choose a date${widget.includeTime ? ' and time' : ''} in the future.';
+        _isSuccess = false;
+      });
       return;
     }
     setState(() {
@@ -101,12 +112,16 @@ class _ApiFormState extends State<ApiForm> {
         setState(() {
           _date = null;
           _message = widget.successMessage;
+          _isSuccess = true;
         });
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _message =
-            'Unable to save. Please check your details and try again.');
+        setState(() {
+          _message =
+              'Unable to save. Please check your details and try again.';
+          _isSuccess = false;
+        });
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -116,42 +131,105 @@ class _ApiFormState extends State<ApiForm> {
   @override
   Widget build(BuildContext context) => PageLayout(
         title: widget.title,
-        child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final field in widget.fields.entries)
-                  Padding(
+        maxWidth: 680,
+        child: Card(
+          margin: EdgeInsets.zero,
+          elevation: 0,
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.border),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final field in widget.fields.entries)
+                    Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: TextFormField(
-                          controller: _controllers[field.key],
-                          enabled: !_busy,
-                          maxLines: field.key == 'description' ? 5 : 1,
-                          decoration: InputDecoration(labelText: field.value),
-                          validator: (value) =>
-                              value == null || value.trim().isEmpty
-                                  ? 'Enter ${field.value.toLowerCase()}'
-                                  : null)),
-                OutlinedButton.icon(
+                        controller: _controllers[field.key],
+                        enabled: !_busy,
+                        maxLines: field.key == 'description' ? 5 : 1,
+                        decoration: InputDecoration(labelText: field.value),
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty
+                                ? 'Enter ${field.value.toLowerCase()}'
+                                : null,
+                      ),
+                    ),
+                  OutlinedButton.icon(
                     onPressed: _busy ? null : _pickDate,
                     icon: const Icon(Icons.calendar_month_outlined),
-                    label: Text(_date == null
-                        ? widget.dateLabel
-                        : (widget.includeTime
-                                ? DateFormat.yMMMd().add_jm()
-                                : DateFormat.yMMMd())
-                            .format(_date!))),
-                const SizedBox(height: 16),
-                AppButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                    ),
+                    label: Text(
+                      _date == null
+                          ? widget.dateLabel
+                          : (widget.includeTime
+                                  ? DateFormat.yMMMd().add_jm()
+                                  : DateFormat.yMMMd())
+                              .format(_date!),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  AppButton(
                     label: widget.submitLabel,
                     loading: _busy,
-                    onPressed: _submit),
-                if (_message != null)
-                  Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: Text(_message!)),
-              ],
-            )),
+                    isFullWidth: true,
+                    onPressed: _submit,
+                  ),
+                  if (_message != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _isSuccess
+                            ? AppColors.successLight
+                            : AppColors.errorLight,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _isSuccess
+                              ? AppColors.successBorder
+                              : AppColors.errorBorder,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _isSuccess
+                                ? Icons.check_circle_outline
+                                : Icons.error_outline,
+                            size: 18,
+                            color: _isSuccess
+                                ? AppColors.success
+                                : AppColors.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _message!,
+                              style: TextStyle(
+                                color: _isSuccess
+                                    ? AppColors.success
+                                    : AppColors.error,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
       );
 }

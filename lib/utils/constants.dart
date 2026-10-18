@@ -12,6 +12,7 @@ abstract final class AppRoutes {
   static const signup = '/signup';
   static const profileCreation = '/profile/create';
   static const dashboard = '/learner/dashboard';
+  static const adminDashboard = '/admin/dashboard';
   static const cvUpload = '/learner/cv';
   static const programs = '/learner/programs';
   static const programDetails = '/programs/details';

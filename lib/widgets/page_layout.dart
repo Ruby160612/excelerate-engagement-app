@@ -5,13 +5,24 @@ import '../services/auth_service.dart';
 import '../utils/constants.dart';
 
 class PageLayout extends StatelessWidget {
-  const PageLayout({super.key, required this.title, required this.child});
+  const PageLayout({
+    super.key,
+    required this.title,
+    required this.child,
+    this.drawer,
+    this.appBarTitle,
+    this.maxWidth = 900,
+  });
   final String title;
   final Widget child;
+  final Widget? drawer;
+  final Widget? appBarTitle;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(title), actions: [
+        drawer: drawer,
+        appBar: AppBar(title: appBarTitle ?? Text(title), actions: [
           if (context.watch<AuthService>().user != null)
             IconButton(
               tooltip: 'Sign out',
@@ -38,7 +49,7 @@ class PageLayout extends StatelessWidget {
             child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 900),
+              constraints: BoxConstraints(maxWidth: maxWidth),
               child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24), child: child)),
         )),

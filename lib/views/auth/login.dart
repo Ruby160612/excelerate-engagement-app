@@ -71,10 +71,12 @@ class _LoginViewState extends State<LoginView> {
         iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Form(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,8 +272,9 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   const SizedBox(height: 30),
                   Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         const Text(
                           "Don't have an account? ",
@@ -298,6 +301,7 @@ class _LoginViewState extends State<LoginView> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }

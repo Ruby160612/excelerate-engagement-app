@@ -43,6 +43,24 @@ void main() {
         throwsA(isA<ApiException>().having((e) => e.statusCode, 's', 401)));
   });
 
+  test('announcements require a session and match the account audience',
+      () async {
+    final guest = _api(mock);
+    addTearDown(guest.dispose);
+    await expectLater(
+        guest.get('/announcements'),
+        throwsA(
+            isA<ApiException>().having((e) => e.statusCode, 'status', 401)));
+
+    for (final account in ['member', 'admin']) {
+      final api = await signIn('$account@example.com', '${account}123');
+      final announcements = await api.get('/announcements') as List;
+      expect(announcements, hasLength(2));
+      expect(announcements.map((item) => item['audience']).toSet(),
+          {'all', account == 'admin' ? 'admin' : 'learner'});
+    }
+  });
+
   test('signup needs the invitation code and creates a learner', () async {
     final api = _api(mock);
     addTearDown(api.dispose);

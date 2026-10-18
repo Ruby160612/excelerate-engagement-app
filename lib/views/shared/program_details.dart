@@ -6,9 +6,10 @@ import '../../models/program.dart';
 import '../../models/user.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
-
-// Same brand orange used on the login screen.
-const Color _brandOrange = Color(0xFFFF4500);
+import '../../utils/themes.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/page_layout.dart';
+import '../../widgets/status_badge.dart';
 
 class ProgramDetailsView extends StatefulWidget {
   const ProgramDetailsView({super.key, required this.program});
@@ -20,209 +21,47 @@ class ProgramDetailsView extends StatefulWidget {
 }
 
 class _ProgramDetailsViewState extends State<ProgramDetailsView> {
-  late Program _program = widget.program;
+  late bool _isRegistered;
   bool _registering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isRegistered = widget.program.isRegistered;
+  }
 
   Future<void> _register() async {
     setState(() => _registering = true);
     try {
-      final id = Uri.encodeComponent(_program.id);
-      final json = await context
-          .read<ApiService>()
-          .post('/programs/$id/register', {}) as Map;
-      final updated = Program.fromJson(Map<String, dynamic>.from(json));
-      if (mounted) setState(() => _program = updated);
+      final id = Uri.encodeComponent(widget.program.id);
+      await context.read<ApiService>().post('/programs/$id/register', {});
+      if (mounted) {
+        setState(() => _isRegistered = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You have successfully registered for this program!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Unable to register. Please try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to register. Please try again later.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _registering = false);
     }
   }
 
-  String get _dateText {
-    final format = DateFormat.yMMMd();
-    final start = _program.startDate.toLocal();
-    final end = _program.endDate?.toLocal();
-    final startText = format.format(start);
-    if (end == null) return startText;
-    final sameDay = start.year == end.year &&
-        start.month == end.month &&
-        start.day == end.day;
-    return sameDay ? startText : '$startText - ${format.format(end)}';
-  }
+  static String _categoryLabel(String category) =>
+      category.isEmpty ? 'Program' : category[0].toUpperCase() + category.substring(1);
 
-  @override
-  Widget build(BuildContext context) {
-    final admin = context.watch<AuthService>().user?.role == UserRole.admin;
-    final program = _program;
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text(
-          'Program Details',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      body: SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Banner(program: program),
-                  const SizedBox(height: 16),
-                  _CategoryPill(category: program.category),
-                  const SizedBox(height: 12),
-                  Text(
-                    program.title,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _InfoCard(rows: [
-                    _InfoRow(
-                      icon: Icons.calendar_today_outlined,
-                      label: 'Date',
-                      value: _dateText,
-                    ),
-                    if (program.schedule.isNotEmpty)
-                      _InfoRow(
-                        icon: Icons.access_time,
-                        label: 'Schedule',
-                        value: program.schedule,
-                      ),
-                  ]),
-                  if (program.description.isNotEmpty)
-                    _Section(
-                      title: 'Description',
-                      child: Text(
-                        program.description,
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.5,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                    ),
-                  if (program.eligibility.isNotEmpty)
-                    _Section(
-                      title: 'Eligibility',
-                      child: _BulletList(items: program.eligibility),
-                    ),
-                  if (program.outcomes.isNotEmpty)
-                    _Section(
-                      title: 'Expected outcomes',
-                      child: _BulletList(items: program.outcomes),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-      // Admins can view programs but cannot register (the API rejects it).
-      bottomNavigationBar: admin
-          ? null
-          : SafeArea(
-              child: Center(
-                heightFactor: 1,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
-                    child: _RegisterButton(
-                      registered: program.isRegistered,
-                      busy: _registering,
-                      onPressed: _register,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-    );
-  }
-}
-
-class _RegisterButton extends StatelessWidget {
-  const _RegisterButton({
-    required this.registered,
-    required this.busy,
-    required this.onPressed,
-  });
-
-  final bool registered;
-  final bool busy;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final shape =
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(8));
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: registered
-          ? OutlinedButton.icon(
-              onPressed: null,
-              style: OutlinedButton.styleFrom(shape: shape),
-              icon: const Icon(Icons.check_circle_outline),
-              label: const Text(
-                'REGISTERED',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            )
-          : ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _brandOrange,
-                foregroundColor: Colors.white,
-                shape: shape,
-              ),
-              onPressed: busy ? null : onPressed,
-              child: busy
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text(
-                      'REGISTER',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-            ),
-    );
-  }
-}
-
-class _Banner extends StatelessWidget {
-  const _Banner({required this.program});
-
-  final Program program;
-
-  static IconData _icon(String category) => switch (category) {
+  static IconData _categoryIcon(String category) => switch (category.toLowerCase()) {
         'workshop' => Icons.build_outlined,
         'webinar' => Icons.videocam_outlined,
         'internship' => Icons.work_outline,
@@ -231,182 +70,431 @@ class _Banner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = ColoredBox(
-      color: Colors.grey.shade100,
-      child: Center(
-        child: Icon(_icon(program.category),
-            size: 56, color: Colors.grey.shade600),
-      ),
-    );
-    final url = program.imageUrl;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: url == null || url.isEmpty
-            ? placeholder
-            : Image.network(url,
-                fit: BoxFit.cover, errorBuilder: (_, __, ___) => placeholder),
-      ),
-    );
-  }
-}
+    final theme = Theme.of(context);
+    final user = context.watch<AuthService>().user;
+    final isAdmin = user?.role == UserRole.admin;
+    final program = widget.program;
 
-class _CategoryPill extends StatelessWidget {
-  const _CategoryPill({required this.category});
-
-  final String category;
-
-  @override
-  Widget build(BuildContext context) {
-    if (category.isEmpty) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: _brandOrange.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        category[0].toUpperCase() + category.substring(1),
-        style: const TextStyle(
-          color: _brandOrange,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.rows});
-
-  final List<Widget> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
+    return PageLayout(
+      title: program.title,
+      maxWidth: 1040,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) const SizedBox(height: 14),
-            rows[i],
-          ],
+          // Breadcrumb / Back Bar
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              TextButton.icon(
+                onPressed: () => Navigator.maybePop(context),
+                icon: const Icon(Icons.arrow_back, size: 18),
+                label: const Text('Back to Programs'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+              ),
+              const Icon(Icons.chevron_right, size: 16, color: AppColors.textMuted),
+              StatusBadge.primary(
+                label: _categoryLabel(program.category),
+                icon: _categoryIcon(program.category),
+              ),
+              if (_isRegistered)
+                const StatusBadge.success(
+                  label: 'Registered',
+                  icon: Icons.check_circle_outline,
+                ),
+              if (isAdmin)
+                const StatusBadge.info(
+                  label: 'Admin Preview',
+                  icon: Icons.admin_panel_settings_outlined,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Header Hero Banner
+          _buildHeroBanner(theme, program),
+          const SizedBox(height: 24),
+
+          // Responsive Content Layout
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 720;
+              final mainContent = _buildMainContent(theme, program);
+              final sidebar = _buildSidebar(theme, program, isAdmin);
+
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 5, child: mainContent),
+                    const SizedBox(width: 24),
+                    Expanded(flex: 4, child: sidebar),
+                  ],
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  sidebar,
+                  const SizedBox(height: 24),
+                  mainContent,
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
   }
-}
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  Widget _buildHeroBanner(ThemeData theme, Program program) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.primaryLight, AppColors.primaryLighter],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primaryBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(_categoryIcon(program.category),
+                    color: AppColors.primary, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _categoryLabel(program.category).toUpperCase(),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Excelerate Development Program',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            program.title,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            program.description,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  final IconData icon;
-  final String label;
-  final String value;
+  Widget _buildMainContent(ThemeData theme, Program program) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Learning Outcomes Section
+        if (program.outcomes.isNotEmpty) ...[
+          _buildCardSection(
+            theme: theme,
+            title: 'Learning Outcomes & Benefits',
+            icon: Icons.emoji_events_outlined,
+            children: [
+              for (final outcome in program.outcomes)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.check_circle_rounded,
+                          size: 18, color: AppColors.success),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          outcome,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
 
-  @override
-  Widget build(BuildContext context) {
+        // Eligibility Requirements Section
+        if (program.eligibility.isNotEmpty) ...[
+          _buildCardSection(
+            theme: theme,
+            title: 'Eligibility & Requirements',
+            icon: Icons.fact_check_outlined,
+            children: [
+              for (final req in program.eligibility)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.arrow_right_alt,
+                          size: 20, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          req,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSidebar(ThemeData theme, Program program, bool isAdmin) {
+    final startFormatted = DateFormat.yMMMd().format(program.startDate.toLocal());
+    final endFormatted = program.endDate != null
+        ? DateFormat.yMMMd().format(program.endDate!.toLocal())
+        : 'Ongoing / Flexible';
+
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Program Overview',
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+
+            _buildDetailRow(
+              icon: Icons.calendar_today_outlined,
+              label: 'Start Date',
+              value: startFormatted,
+              theme: theme,
+            ),
+            const Divider(height: 20),
+
+            _buildDetailRow(
+              icon: Icons.event_available_outlined,
+              label: 'End Date',
+              value: endFormatted,
+              theme: theme,
+            ),
+            const Divider(height: 20),
+
+            _buildDetailRow(
+              icon: Icons.schedule_outlined,
+              label: 'Schedule',
+              value: program.schedule.isNotEmpty ? program.schedule : 'To be announced',
+              theme: theme,
+            ),
+            const Divider(height: 20),
+
+            _buildDetailRow(
+              icon: Icons.category_outlined,
+              label: 'Format',
+              value: _categoryLabel(program.category),
+              theme: theme,
+            ),
+            const SizedBox(height: 24),
+
+            // Action / Status Area
+            if (!isAdmin) ...[
+              if (_isRegistered)
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.successLight,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.successBorder),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'You are enrolled in this program',
+                          style: TextStyle(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                AppButton.primary(
+                  label: 'Register for Program',
+                  loading: _registering,
+                  isFullWidth: true,
+                  icon: Icons.how_to_reg_outlined,
+                  onPressed: _register,
+                ),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryLight,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, size: 18, color: AppColors.textSecondary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Learners can register for this program from their portal.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardSection({
+    required ThemeData theme,
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: AppColors.primary, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required ThemeData theme,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: Colors.grey),
+        Icon(icon, size: 18, color: AppColors.primary),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: AppColors.textMuted,
+                ),
+              ),
               const SizedBox(height: 2),
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 14,
+                style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: Colors.black,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _BulletList extends StatelessWidget {
-  const _BulletList({required this.items});
-
-  final List<String> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final item in items)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 7, right: 12),
-                  child: Icon(Icons.circle, size: 6, color: _brandOrange),
-                ),
-                Expanded(
-                  child: Text(
-                    item,
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
       ],
     );
   }

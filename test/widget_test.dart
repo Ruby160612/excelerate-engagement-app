@@ -11,9 +11,10 @@ void main() {
     final preferences = await SharedPreferences.getInstance();
     await tester.pumpWidget(ExcelerateApp(preferences: preferences));
     await tester.pumpAndSettle();
-    expect(find.text(AppConstants.name), findsOneWidget);
-    expect(find.text('Welcome back'), findsOneWidget);
-    await tester.tap(find.text('Have an invitation? Create an account'));
+    expect(find.text('Excelerate'), findsOneWidget);
+    expect(find.text('Welcome Back!'), findsOneWidget);
+    await tester.ensureVisible(find.text('Sign Up'));
+    await tester.tap(find.text('Sign Up'));
     await tester.pumpAndSettle();
     expect(find.text('Invitation code'), findsOneWidget);
     await tester.ensureVisible(find.text('Create account'));
@@ -32,7 +33,7 @@ void main() {
     final navigator = tester.state<NavigatorState>(find.byType(Navigator));
     navigator.pushNamed(AppRoutes.postOpportunity);
     await tester.pumpAndSettle();
-    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('Welcome Back!'), findsOneWidget);
     expect(find.text('Publish opportunity'), findsNothing);
   });
 }

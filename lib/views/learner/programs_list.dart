@@ -114,6 +114,7 @@ class _ProgramsListViewState extends State<ProgramsListView> {
     final admin = context.watch<AuthService>().user?.role == UserRole.admin;
     return PageLayout(
       title: 'Development programs',
+      maxWidth: 1040,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -190,21 +191,32 @@ class _ProgramsListViewState extends State<ProgramsListView> {
     if (programs.isEmpty) {
       return const Text('No programs match your search.');
     }
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: programs.length,
-      itemBuilder: (context, index) {
-        final program = programs[index];
-        return ProgramCard(
-          program: program,
-          registering: _registering.contains(program.id),
-          onRegister: admin ? null : () => _register(program),
-          onTap: () => Navigator.pushNamed(
-            context,
-            AppRoutes.programDetails,
-            arguments: program,
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMultiColumn = constraints.maxWidth >= 700;
+        final cardWidth = isMultiColumn
+            ? (constraints.maxWidth - 16) / 2
+            : constraints.maxWidth;
+
+        return Wrap(
+          spacing: 16,
+          runSpacing: 0,
+          children: [
+            for (final program in programs)
+              SizedBox(
+                width: cardWidth,
+                child: ProgramCard(
+                  program: program,
+                  registering: _registering.contains(program.id),
+                  onRegister: admin ? null : () => _register(program),
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    AppRoutes.programDetails,
+                    arguments: program,
+                  ),
+                ),
+              ),
+          ],
         );
       },
     );
