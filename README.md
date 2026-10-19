@@ -17,23 +17,23 @@ Excelerate Talent Hub is a Flutter application designed to support onboarding, p
 
 ## Screenshots
 
-The screenshots below show key UI screens from the app. The image files should be stored in `docs/screenshots/`.
+The screenshots below show key UI screens from the app. The image files are stored in `docs/screenshots/` and the README references the uploaded filenames.
 
 ### 1. Login Screen
 
-![Login screen](docs/screenshots/login.png)
+![Login screen](docs/screenshots/login.png.png)
 
 ### 2. Learner Dashboard
 
-![Learner dashboard](docs/screenshots/dashboard.png)
+![Learner dashboard](docs/screenshots/dashboard.png.png)
 
 ### 3. Programme Listing
 
-![Programme listing](docs/screenshots/programs.png)
+![Programme listing](docs/screenshots/programs.png.png)
 
 ### 4. Programme Details
 
-![Programme details](docs/screenshots/program_details.png)
+![Programme details](docs/screenshots/program_details.png.png)
 
 ## Tech Stack
 
