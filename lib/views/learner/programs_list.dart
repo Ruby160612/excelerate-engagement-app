@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../models/program.dart';
 import '../../models/user.dart';
-import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/program_repository.dart';
 import '../../utils/constants.dart';
 import '../../widgets/page_layout.dart';
 import '../../widgets/program_card.dart';
@@ -22,7 +22,11 @@ class _ProgramsListViewState extends State<ProgramsListView> {
   List<Program>? _programs;
   bool _loading = true;
   bool _failed = false;
+  String _errorMessage = _loadFailed;
+  int _skipped = 0;
   String? _category;
+
+  static const _loadFailed = 'Unable to load this page. Please try again.';
 
   @override
   void initState() {
@@ -36,28 +40,30 @@ class _ProgramsListViewState extends State<ProgramsListView> {
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false}) async {
     try {
-      final data = await context.read<ApiService>().get('/programs') as List;
-      final programs = [
-        for (final json in data)
-          Program.fromJson(Map<String, dynamic>.from(json as Map)),
-      ];
+      final result = await context.read<ProgramRepository>().fetchPrograms();
       if (mounted) {
         setState(() {
-          _programs = programs;
+          _programs = result.programs;
+          _skipped = result.skipped;
+          _failed = false;
           _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) {
+    } catch (error) {
+      if (!silent && mounted) {
         setState(() {
+          _errorMessage = _messageOf(error, _loadFailed);
           _failed = true;
           _loading = false;
         });
       }
     }
   }
+
+  static String _messageOf(Object error, String fallback) =>
+      error is ProgramException ? error.message : fallback;
 
   void _retry() {
     setState(() {
@@ -70,20 +76,18 @@ class _ProgramsListViewState extends State<ProgramsListView> {
   Future<void> _register(Program program) async {
     setState(() => _registering.add(program.id));
     try {
-      final id = Uri.encodeComponent(program.id);
-      final json = await context
-          .read<ApiService>()
-          .post('/programs/$id/register', {}) as Map;
-      final updated = Program.fromJson(Map<String, dynamic>.from(json));
+      final updated =
+          await context.read<ProgramRepository>().register(program.id);
       if (mounted) {
         setState(() => _programs = [
               for (final p in _programs!) p.id == updated.id ? updated : p,
             ]);
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Unable to register. Please try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                _messageOf(error, 'Unable to register. Please try again.'))));
       }
     } finally {
       if (mounted) setState(() => _registering.remove(program.id));
@@ -141,10 +145,31 @@ class _ProgramsListViewState extends State<ProgramsListView> {
             _chips(Theme.of(context).colorScheme),
           ],
           const SizedBox(height: 16),
+          if (_programs != null && _skipped > 0) _skippedNotice(),
           _content(admin),
         ],
       ),
     );
+  }
+
+  Widget _skippedNotice() => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(_skipped == 1
+                  ? 'One program could not be shown.'
+                  : '$_skipped programs could not be shown.'),
+            ),
+          ],
+        ),
+      );
+
+  Future<void> _open(Program program) async {
+    await Navigator.pushNamed(context, AppRoutes.programDetailsFor(program.id));
+    if (mounted) _load(silent: true);
   }
 
   Widget _chips(ColorScheme scheme) => SizedBox(
@@ -180,7 +205,7 @@ class _ProgramsListViewState extends State<ProgramsListView> {
     }
     if (_failed) {
       return Column(children: [
-        const Text('Unable to load this page. Please try again.'),
+        Text(_errorMessage),
         TextButton(onPressed: _retry, child: const Text('Retry')),
       ]);
     }
@@ -209,11 +234,7 @@ class _ProgramsListViewState extends State<ProgramsListView> {
                   program: program,
                   registering: _registering.contains(program.id),
                   onRegister: admin ? null : () => _register(program),
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    AppRoutes.programDetails,
-                    arguments: program,
-                  ),
+                  onTap: () => _open(program),
                 ),
               ),
           ],

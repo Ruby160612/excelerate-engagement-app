@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:excelerate_talent_hub/models/program.dart';
 import 'package:excelerate_talent_hub/services/api_service.dart';
 import 'package:excelerate_talent_hub/services/auth_service.dart';
 import 'package:excelerate_talent_hub/services/mock_api.dart';
+import 'package:excelerate_talent_hub/services/program_repository.dart';
 import 'package:excelerate_talent_hub/services/storage_service.dart';
 import 'package:excelerate_talent_hub/utils/constants.dart';
 import 'package:excelerate_talent_hub/utils/themes.dart';
@@ -26,7 +26,7 @@ Future<http.Response> _forward(http.Client target, http.Request request) async {
 const _learner = ('member@example.com', 'member123');
 const _admin = ('admin@example.com', 'admin123');
 
-Future<void> _pump(
+Future<ApiService> _pump(
   WidgetTester tester, {
   (String, String) account = _learner,
   http.Client Function(http.Client mock)? wrap,
@@ -51,6 +51,7 @@ Future<void> _pump(
   await tester.pumpWidget(MultiProvider(
     providers: [
       Provider<ApiService>.value(value: api),
+      Provider<ProgramRepository>.value(value: ApiProgramRepository(api)),
       ChangeNotifierProvider<AuthService>.value(value: auth),
     ],
     child: MaterialApp(
@@ -70,7 +71,19 @@ Future<void> _pump(
     ),
   ));
   await tester.pumpAndSettle();
+  return api;
 }
+
+http.Client Function(http.Client) _withProgramsBody(
+  Object? Function(List<dynamic> programs) change,
+) =>
+    (mock) => MockClient((request) async {
+          final response = await _forward(mock, request);
+          if (!request.url.path.endsWith('/programs')) return response;
+          final body = change(jsonDecode(response.body) as List);
+          return http.Response(jsonEncode(body), 200,
+              headers: {'content-type': 'application/json; charset=utf-8'});
+        });
 
 void main() {
   testWidgets('shows every program as a card', (tester) async {
@@ -78,6 +91,80 @@ void main() {
     expect(find.byType(ProgramCard), findsNWidgets(8));
     expect(find.text('Digital Skills Bootcamp'), findsOneWidget);
     expect(find.text('Nov 3, 2026'), findsOneWidget);
+    expect(find.textContaining('could not be shown'), findsNothing);
+  });
+
+  testWidgets('one broken record is skipped and the notice says so',
+      (tester) async {
+    await _pump(
+      tester,
+      wrap: _withProgramsBody((programs) => [
+            ...programs,
+            {'id': 'broken', 'title': 'No date or category'},
+          ]),
+    );
+    expect(find.byType(ProgramCard), findsNWidgets(8));
+    expect(find.text('One program could not be shown.'), findsOneWidget);
+  });
+
+  testWidgets('several broken records are counted in the notice',
+      (tester) async {
+    await _pump(
+      tester,
+      wrap: _withProgramsBody((programs) => [
+            ...programs,
+            {'id': 'broken-1'},
+            42,
+            {'title': 'No id', 'start_date': '2026-11-01T09:00:00Z'},
+          ]),
+    );
+    expect(find.byType(ProgramCard), findsNWidgets(8));
+    expect(find.text('3 programs could not be shown.'), findsOneWidget);
+  });
+
+  testWidgets('a response that is not a list shows the invalid data message',
+      (tester) async {
+    await _pump(
+      tester,
+      wrap: _withProgramsBody((programs) => {'programs': programs}),
+    );
+    expect(find.text('The programs data is invalid.'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.byType(ProgramCard), findsNothing);
+  });
+
+  testWidgets('the list refreshes after returning from details',
+      (tester) async {
+    final api = await _pump(tester);
+    expect(find.text('Register'), findsNWidgets(7));
+    await tester.tap(find.text('Digital Skills Bootcamp'));
+    await tester.pumpAndSettle();
+    expect(find.text('Details page'), findsOneWidget);
+
+    await api.post('/programs/prog-001/register', {});
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pumpAndSettle();
+    expect(find.text('Register'), findsNWidgets(6));
+    expect(find.text('View'), findsNWidgets(2));
+  });
+
+  testWidgets('a failed refresh after returning keeps the list',
+      (tester) async {
+    var calls = 0;
+    await _pump(
+      tester,
+      wrap: (mock) => MockClient((request) async =>
+          request.url.path.endsWith('/programs') && calls++ > 0
+              ? http.Response('{}', 500)
+              : _forward(mock, request)),
+    );
+    await tester.tap(find.text('Digital Skills Bootcamp'));
+    await tester.pumpAndSettle();
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramCard), findsNWidgets(8));
+    expect(
+        find.text('Unable to load this page. Please try again.'), findsNothing);
   });
 
   testWidgets('search narrows the list and reports no matches', (tester) async {
@@ -143,8 +230,8 @@ void main() {
     await _pump(tester, onRoute: (settings) => pushed = settings);
     await tester.tap(find.text('Digital Skills Bootcamp'));
     await tester.pumpAndSettle();
-    expect(pushed?.name, AppRoutes.programDetails);
-    expect((pushed?.arguments as Program).id, 'prog-001');
+    expect(pushed?.name, AppRoutes.programDetailsFor('prog-001'));
+    expect(pushed?.arguments, isNull);
     expect(find.text('Details page'), findsOneWidget);
   });
 

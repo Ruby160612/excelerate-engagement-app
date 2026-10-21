@@ -3,6 +3,11 @@ import 'package:excelerate_talent_hub/services/mock_data.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  late List<Map<String, dynamic>> mockPrograms;
+
+  setUpAll(() async => mockPrograms = await loadMockPrograms());
+
   test('every sample program survives a JSON round trip', () {
     for (final json in mockPrograms) {
       final program = Program.fromJson(json);

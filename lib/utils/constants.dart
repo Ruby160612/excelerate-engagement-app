@@ -15,7 +15,9 @@ abstract final class AppRoutes {
   static const adminDashboard = '/admin/dashboard';
   static const cvUpload = '/learner/cv';
   static const programs = '/learner/programs';
-  static const programDetails = '/programs/details';
+  static const programDetails = '/program-details';
+  static String programDetailsFor(String id) =>
+      '$programDetails/${Uri.encodeComponent(id)}';
   static const assessments = '/learner/assessments';
   static const badges = '/learner/badges';
   static const applications = '/learner/applications';

@@ -1,7 +1,5 @@
 import 'package:excelerate_talent_hub/main.dart';
-import 'package:excelerate_talent_hub/models/program.dart';
 import 'package:excelerate_talent_hub/services/mock_api.dart';
-import 'package:excelerate_talent_hub/services/mock_data.dart';
 import 'package:excelerate_talent_hub/utils/constants.dart';
 import 'package:excelerate_talent_hub/views/shared/program_details.dart';
 import 'package:excelerate_talent_hub/widgets/program_card.dart';
@@ -59,6 +57,25 @@ void main() {
     expect(find.byType(ProgramDetailsView), findsOneWidget);
   });
 
+  testWidgets('a program opens straight from its id route', (tester) async {
+    final navigator = await _launch(tester);
+    await _signIn(tester, 'member@example.com', 'member123');
+    navigator.pushNamed(AppRoutes.programDetailsFor('prog-007'));
+    await tester.pumpAndSettle();
+    final details =
+        tester.widget<ProgramDetailsView>(find.byType(ProgramDetailsView));
+    expect(details.program.title, 'Partner Internship Placement');
+  });
+
+  testWidgets('an unknown id shows a clear not found message', (tester) async {
+    final navigator = await _launch(tester);
+    await _signIn(tester, 'member@example.com', 'member123');
+    navigator.pushNamed(AppRoutes.programDetailsFor('does not/exist'));
+    await tester.pumpAndSettle();
+    expect(find.text('This program could not be found.'), findsOneWidget);
+    expect(find.byType(ProgramDetailsView), findsNothing);
+  });
+
   testWidgets('guests are sent to login from the listing and details',
       (tester) async {
     final navigator = await _launch(tester);
@@ -67,14 +84,13 @@ void main() {
     expect(find.byType(ProgramCard), findsNothing);
     expect(find.text('Welcome Back!'), findsOneWidget);
 
-    navigator.pushNamed(AppRoutes.programDetails,
-        arguments: Program.fromJson(mockPrograms.first));
+    navigator.pushNamed(AppRoutes.programDetailsFor('prog-001'));
     await tester.pumpAndSettle();
     expect(find.byType(ProgramDetailsView), findsNothing);
     expect(find.text('Welcome Back!'), findsOneWidget);
   });
 
-  testWidgets('details without a program shows the not found page',
+  testWidgets('the details route without an id shows the not found page',
       (tester) async {
     final navigator = await _launch(tester);
     await _signIn(tester, 'member@example.com', 'member123');

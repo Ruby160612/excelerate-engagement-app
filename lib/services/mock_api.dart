@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import '../models/program.dart';
 import '../models/user.dart';
 import 'mock_data.dart';
 
@@ -35,22 +34,27 @@ class _Account {
 
 /// In-memory stand-in for the backend, used only when USE_MOCK is set.
 class MockApi {
-  MockApi({this.latency = const Duration(milliseconds: 250)}) {
-    final registeredIds = [
-      for (final json in mockPrograms)
-        if (json['is_registered'] == true) json['id'] as String,
-    ];
-    for (final account in _accounts.values) {
-      _registrations[account.id] = {
-        if (account.role == UserRole.learner) ...registeredIds,
-      };
-    }
-  }
+  MockApi({
+    this.latency = const Duration(milliseconds: 250),
+    Future<List<Map<String, dynamic>>> Function()? programLoader,
+  }) : _programLoader = programLoader ?? _defaultLoader;
 
   static const baseUrl = 'https://mock.excelerate.local/api';
   static const invitationCode = 'EXCEL2026';
 
+  static List<Map<String, dynamic>>? _cachedPrograms;
+
+  /// Reads the programs asset ahead of time for tests that cannot wait on file I/O.
+  static Future<void> preloadPrograms() async =>
+      _cachedPrograms = await loadMockPrograms();
+
+  static Future<List<Map<String, dynamic>>> _defaultLoader() async =>
+      _cachedPrograms ?? await loadMockPrograms();
+
   final Duration latency;
+  final Future<List<Map<String, dynamic>>> Function() _programLoader;
+  List<Map<String, dynamic>>? _programs;
+  Set<String> _defaultRegistered = {};
   final Map<String, _Account> _accounts = {
     'learner@example.com': _Account(
       id: 'u-learner',
@@ -105,7 +109,7 @@ class MockApi {
       case 'POST /profiles/me/cv':
         return http.Response('', 204);
       case 'GET /programs':
-        return _json([for (final p in _programsFor(account)) p.toJson()]);
+        return _json(await _programsFor(account));
       case 'GET /announcements':
         return _json([
           for (final announcement in mockAnnouncements)
@@ -126,11 +130,12 @@ class MockApi {
 
     final segments = path.split('/').where((part) => part.isNotEmpty).toList();
     if (segments.length >= 2 && segments.first == 'programs') {
-      final program =
-          _programsFor(account).where((p) => p.id == segments[1]).firstOrNull;
+      final program = (await _programsFor(account))
+          .where((p) => p['id']?.toString() == segments[1])
+          .firstOrNull;
       if (program == null) return _error(404, 'Program not found.');
       if (segments.length == 2 && request.method == 'GET') {
-        return _json(program.toJson());
+        return _json(program);
       }
       if (segments.length == 3 &&
           segments[2] == 'register' &&
@@ -138,8 +143,8 @@ class MockApi {
         if (admin) {
           return _error(403, 'Admins cannot register for programs.');
         }
-        _registrations[account.id]!.add(program.id);
-        return _json(program.copyWith(isRegistered: true).toJson());
+        _registrationsFor(account).add(segments[1]);
+        return _json({...program, 'is_registered': true});
       }
     }
     if (request.method == 'PUT' && segments.firstOrNull == 'applications') {
@@ -189,13 +194,30 @@ class MockApi {
         : null;
   }
 
-  List<Program> _programsFor(_Account account) => [
-        for (final json in mockPrograms)
-          Program.fromJson(json).copyWith(
-            isRegistered:
-                _registrations[account.id]?.contains(json['id']) ?? false,
-          ),
-      ];
+  Future<List<Map<String, dynamic>>> _loadPrograms() async {
+    final loaded = _programs;
+    if (loaded != null) return loaded;
+    final data = await _programLoader();
+    _defaultRegistered = {
+      for (final json in data)
+        if (json['is_registered'] == true && json['id'] != null)
+          json['id'].toString(),
+    };
+    return _programs = data;
+  }
+
+  Set<String> _registrationsFor(_Account account) => _registrations.putIfAbsent(
+      account.id,
+      () => account.role == UserRole.learner ? {..._defaultRegistered} : {});
+
+  Future<List<Map<String, dynamic>>> _programsFor(_Account account) async {
+    final programs = await _loadPrograms();
+    final registered = _registrationsFor(account);
+    return [
+      for (final json in programs)
+        {...json, 'is_registered': registered.contains(json['id']?.toString())},
+    ];
+  }
 
   Map<String, dynamic> _body(http.Request request) => request.body.isEmpty
       ? <String, dynamic>{}

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/program.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../views/admin/application_review.dart';
@@ -17,7 +16,7 @@ import '../views/learner/badges.dart';
 import '../views/learner/cv_upload.dart';
 import '../views/learner/dashboard.dart';
 import '../views/learner/programs_list.dart';
-import '../views/shared/program_details.dart';
+import '../views/shared/program_details_loader.dart';
 import '../widgets/page_layout.dart';
 import 'constants.dart';
 
@@ -27,7 +26,23 @@ abstract final class AppRouter {
       child:
           Text('This page is unavailable. Please return to your dashboard.'));
 
+  static String? _programIdFrom(String? name) {
+    final segments = Uri.tryParse(name ?? '')?.pathSegments ?? const <String>[];
+    return segments.length == 2 &&
+            segments.first == 'program-details' &&
+            segments[1].isNotEmpty
+        ? segments[1]
+        : null;
+  }
+
   static Route<dynamic> generate(RouteSettings settings) {
+    final programId = _programIdFrom(settings.name);
+    if (programId != null) {
+      return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) =>
+              AuthGuard(child: ProgramDetailsLoader(programId: programId)));
+    }
     final Widget screen;
     switch (settings.name) {
       case AppRoutes.home:
@@ -49,10 +64,7 @@ abstract final class AppRouter {
       case AppRoutes.programs:
         screen = const AuthGuard(child: ProgramsListView());
       case AppRoutes.programDetails:
-        final program = settings.arguments;
-        screen = program is Program
-            ? AuthGuard(child: ProgramDetailsView(program: program))
-            : _notFound;
+        screen = _notFound;
       case AppRoutes.assessments:
         screen =
             const AuthGuard(role: UserRole.learner, child: AssessmentsView());

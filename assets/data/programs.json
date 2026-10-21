@@ -1,0 +1,144 @@
+[
+  {
+    "id": "prog-001",
+    "title": "Digital Skills Bootcamp",
+    "description": "Build the everyday digital skills employers expect, from spreadsheets and email to online collaboration tools.",
+    "start_date": "2026-11-03T09:00:00Z",
+    "end_date": "2026-12-18T17:00:00Z",
+    "schedule": "Tuesdays and Thursdays, 5:00 PM to 7:00 PM",
+    "eligibility": [
+      "Aged 18 to 30",
+      "Completed Excelerate onboarding",
+      "Access to a laptop or computer lab"
+    ],
+    "outcomes": [
+      "Certificate of completion",
+      "Confident use of spreadsheets, email and collaboration tools",
+      "Digital skills badge"
+    ],
+    "category": "course"
+  },
+  {
+    "id": "prog-002",
+    "title": "Data Analytics Foundations",
+    "description": "Learn to collect, clean and present data so you can answer real business questions with confidence.",
+    "start_date": "2026-11-09T09:00:00Z",
+    "end_date": "2027-01-29T17:00:00Z",
+    "schedule": "Mondays and Wednesdays, 6:00 PM to 8:00 PM",
+    "eligibility": [
+      "Aged 18 to 30",
+      "Comfortable with basic spreadsheets",
+      "Completed the Digital Skills Bootcamp or an equivalent assessment"
+    ],
+    "outcomes": [
+      "Certificate of completion",
+      "A data dashboard for your portfolio",
+      "Data analytics badge"
+    ],
+    "category": "course"
+  },
+  {
+    "id": "prog-003",
+    "title": "CV and Interview Workshop",
+    "description": "A hands-on session on writing a strong CV and handling common interview questions, with live feedback from recruiters.",
+    "start_date": "2026-10-24T10:00:00Z",
+    "end_date": "2026-10-24T13:00:00Z",
+    "schedule": "Saturday, 10:00 AM to 1:00 PM",
+    "eligibility": [
+      "Open to all Excelerate learners",
+      "Bring a draft CV if you have one"
+    ],
+    "outcomes": [
+      "A reviewed and improved CV",
+      "Practice with mock interview questions"
+    ],
+    "category": "workshop"
+  },
+  {
+    "id": "prog-004",
+    "title": "Web Development Starter Workshop",
+    "description": "Build and publish your first simple website over one weekend, no experience needed.",
+    "start_date": "2026-11-14T09:00:00Z",
+    "end_date": "2026-11-15T15:00:00Z",
+    "schedule": "Saturday and Sunday, 9:00 AM to 3:00 PM",
+    "eligibility": [
+      "Aged 18 to 30",
+      "Bring a laptop"
+    ],
+    "outcomes": [
+      "A published personal web page",
+      "Understanding of how websites work"
+    ],
+    "category": "workshop"
+  },
+  {
+    "id": "prog-005",
+    "title": "Careers in Tech Webinar",
+    "description": "Hear from professionals working in technology about the roles that exist and how they got started.",
+    "start_date": "2026-10-29T16:00:00Z",
+    "end_date": "2026-10-29T17:30:00Z",
+    "schedule": "Thursday, 4:00 PM to 5:30 PM, online",
+    "eligibility": [
+      "Open to all Excelerate learners"
+    ],
+    "outcomes": [
+      "Clear picture of entry-level tech roles",
+      "Chance to ask professionals your questions"
+    ],
+    "category": "webinar"
+  },
+  {
+    "id": "prog-006",
+    "title": "Starting Your First Business",
+    "description": "A four-week webinar series on testing an idea, pricing, and finding your first customers.",
+    "start_date": "2026-11-05T17:00:00Z",
+    "end_date": "2026-11-26T18:00:00Z",
+    "schedule": "Thursdays, 5:00 PM to 6:00 PM, online",
+    "eligibility": [
+      "Aged 18 to 35",
+      "A business idea, even an early one"
+    ],
+    "outcomes": [
+      "A one-page business plan",
+      "Entrepreneurship badge"
+    ],
+    "category": "webinar"
+  },
+  {
+    "id": "prog-007",
+    "title": "Partner Internship Placement",
+    "description": "A twelve-week placement with an Excelerate partner organisation, with a mentor to support you throughout.",
+    "start_date": "2027-01-11T08:00:00Z",
+    "end_date": "2027-04-02T16:00:00Z",
+    "schedule": "Monday to Friday, 9:00 AM to 4:00 PM, hybrid",
+    "eligibility": [
+      "Excelerate graduate",
+      "Completed at least one Excelerate program",
+      "Up-to-date CV uploaded to your profile"
+    ],
+    "outcomes": [
+      "Real workplace experience",
+      "Reference letter from your host organisation",
+      "Possible offer of continued employment"
+    ],
+    "category": "internship"
+  },
+  {
+    "id": "prog-008",
+    "title": "Leadership, Communication and Professional Presentation Skills Masterclass for Emerging Young Professionals",
+    "description": "This masterclass covers leading small teams, communicating clearly in writing and in meetings, giving confident presentations, and handling feedback. Each session combines short lessons with group practice, and you will present a short talk to a panel at the end of the program.",
+    "start_date": "2026-12-01T09:00:00Z",
+    "end_date": null,
+    "schedule": "Tuesdays, 4:00 PM to 6:00 PM",
+    "eligibility": [
+      "Aged 18 to 30",
+      "Completed at least one Excelerate program"
+    ],
+    "outcomes": [
+      "Certificate of completion",
+      "A recorded presentation for your portfolio"
+    ],
+    "category": "course",
+    "is_registered": true
+  }
+]
