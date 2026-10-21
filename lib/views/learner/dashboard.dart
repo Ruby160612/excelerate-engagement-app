@@ -69,6 +69,13 @@ class DashboardView extends StatelessWidget {
             icon: Icons.quiz_outlined,
           ),
           DashboardAction(
+            title: 'Give feedback',
+            description:
+                'Share your experience and help improve the learning journey.',
+            route: AppRoutes.feedback,
+            icon: Icons.feedback_outlined,
+          ),
+          DashboardAction(
             title: 'Your badges',
             description:
                 'Celebrate the skills and achievements you have earned.',
