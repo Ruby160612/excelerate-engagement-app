@@ -11,10 +11,20 @@ class DashboardMetric {
     required this.icon,
     this.filterField,
     this.filterValue,
-  });
+  }) : loadCount = null;
+
+  const DashboardMetric.computed({
+    required this.label,
+    required this.route,
+    required this.icon,
+    required this.loadCount,
+  })  : path = null,
+        filterField = null,
+        filterValue = null;
 
   final String label;
-  final String path;
+  final String? path;
+  final Future<int> Function(BuildContext context)? loadCount;
   final String route;
   final IconData icon;
   final String? filterField;
@@ -36,7 +46,7 @@ class DashboardOverview extends StatefulWidget {
 }
 
 class _DashboardOverviewState extends State<DashboardOverview> {
-  late Future<Map<String, List<Map<String, dynamic>>>> _collections;
+  late Future<Map<DashboardMetric, int>> _collections;
 
   @override
   void initState() {
@@ -44,14 +54,19 @@ class _DashboardOverviewState extends State<DashboardOverview> {
     _collections = _load();
   }
 
-  Future<Map<String, List<Map<String, dynamic>>>> _load() async {
-    final api = context.read<ApiService>();
-    final paths = widget.metrics.map((metric) => metric.path).toSet();
-    final entries = await Future.wait(paths.map((path) async {
-      final data = await api.get(path) as List;
-      return MapEntry(path, [
-        for (final item in data) Map<String, dynamic>.from(item as Map),
-      ]);
+  Future<Map<DashboardMetric, int>> _load() async {
+    final requests = <String, Future<List<Map<String, dynamic>>>>{};
+    final entries = await Future.wait(widget.metrics.map((metric) async {
+      final loadCount = metric.loadCount;
+      if (loadCount != null) return MapEntry(metric, await loadCount(context));
+      final path = metric.path!;
+      final collection = requests.putIfAbsent(path, () async {
+        final data = await context.read<ApiService>().get(path) as List;
+        return [
+          for (final item in data) Map<String, dynamic>.from(item as Map)
+        ];
+      });
+      return MapEntry(metric, metric.count(await collection));
     }));
     return Map.fromEntries(entries);
   }
@@ -132,7 +147,7 @@ class _DashboardOverviewState extends State<DashboardOverview> {
                                           .primary),
                                   const SizedBox(height: 12),
                                   Text(
-                                    '${metric.count(snapshot.data![metric.path]!)}',
+                                    '${snapshot.data![metric]}',
                                     key: ValueKey('metric-${metric.label}'),
                                     style: Theme.of(context)
                                         .textTheme

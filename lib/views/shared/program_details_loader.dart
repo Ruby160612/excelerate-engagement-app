@@ -88,7 +88,7 @@ class _FailureView extends StatelessWidget {
             spacing: 8,
             alignment: WrapAlignment.center,
             children: [
-              if (failure.kind == ProgramFailure.unavailable)
+              if (failure.retryable)
                 FilledButton(onPressed: onRetry, child: const Text('Retry')),
               OutlinedButton(
                 onPressed: () => Navigator.maybePop(context),

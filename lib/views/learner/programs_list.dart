@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/program.dart';
+import '../../models/program_query.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
 import '../../services/program_repository.dart';
@@ -85,6 +86,13 @@ class _ProgramsListViewState extends State<ProgramsListView> {
       }
     } catch (error) {
       if (mounted) {
+        if (error is ProgramException &&
+            error.code == ProgramErrorCode.alreadyRegistered) {
+          setState(() => _programs = [
+                for (final p in _programs!)
+                  p.id == program.id ? p.copyWith(isRegistered: true) : p,
+              ]);
+        }
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
                 _messageOf(error, 'Unable to register. Please try again.'))));
@@ -98,17 +106,9 @@ class _ProgramsListViewState extends State<ProgramsListView> {
         for (final program in _programs ?? const <Program>[]) program.category,
       }.toList();
 
-  List<Program> get _visible {
-    final query = _search.text.trim().toLowerCase();
-    return [
-      for (final program in _programs ?? const <Program>[])
-        if ((_category == null || program.category == _category) &&
-            (query.isEmpty ||
-                program.title.toLowerCase().contains(query) ||
-                program.description.toLowerCase().contains(query)))
-          program,
-    ];
-  }
+  List<Program> get _visible =>
+      ProgramQuery(search: _search.text, category: _category)
+          .apply(_programs ?? const <Program>[]);
 
   static String _label(String category) =>
       category[0].toUpperCase() + category.substring(1);

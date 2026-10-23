@@ -58,7 +58,8 @@ class AppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Widget button;
-    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(8));
+    final shape =
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(8));
 
     if (loading) {
       final spinner = const SizedBox(

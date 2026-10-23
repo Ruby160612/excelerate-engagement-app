@@ -1,0 +1,10 @@
+{
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.import.gradle.enabled": false,
+    "java.import.gradle.java.home": "/usr/lib/jvm/java-21-openjdk-amd64",
+    "dart.flutterSdkPath": "/opt/flutter",
+    "terminal.integrated.env.linux": {
+        "JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64",
+        "PATH": "/opt/flutter/bin:${env:PATH}"
+    }
+}

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:excelerate_talent_hub/models/program.dart';
 import 'package:excelerate_talent_hub/models/user.dart';
 import 'package:excelerate_talent_hub/services/api_service.dart';
+import 'package:excelerate_talent_hub/services/program_repository.dart';
 import 'package:excelerate_talent_hub/services/auth_service.dart';
 import 'package:excelerate_talent_hub/services/mock_api.dart';
 import 'package:excelerate_talent_hub/services/storage_service.dart';
@@ -19,7 +20,8 @@ import 'package:excelerate_talent_hub/widgets/status_badge.dart';
 
 void main() {
   group('Design System & Themes', () {
-    test('AppColors preserves Excelerate orange and defines semantic palette', () {
+    test('AppColors preserves Excelerate orange and defines semantic palette',
+        () {
       expect(AppColors.primary, const Color(0xFFFF4500));
       expect(AppColors.primaryLight, const Color(0xFFFFF0E8));
       expect(AppColors.background, const Color(0xFFF6F7FB));
@@ -101,7 +103,8 @@ void main() {
       expect(find.byIcon(Icons.file_download), findsOneWidget);
     });
 
-    testWidgets('AppCard renders icon, title, subtitle, status badge, and responds to tap',
+    testWidgets(
+        'AppCard renders icon, title, subtitle, status badge, and responds to tap',
         (tester) async {
       var cardTapped = false;
       await tester.pumpWidget(MaterialApp(
@@ -229,6 +232,7 @@ void main() {
         MultiProvider(
           providers: [
             Provider<ApiService>.value(value: api),
+            Provider<ProgramRepository>.value(value: ApiProgramRepository(api)),
             ChangeNotifierProvider<AuthService>.value(value: auth),
           ],
           child: MaterialApp(
@@ -269,13 +273,16 @@ void main() {
       expect(find.text('Register for Program'), findsNothing);
     });
 
-    testWidgets('admin view displays preview mode without learner register button',
+    testWidgets(
+        'admin view displays preview mode without learner register button',
         (tester) async {
       await pumpDetails(tester, program: sampleProgram, role: UserRole.admin);
 
       expect(find.text('Admin Preview'), findsOneWidget);
       expect(find.text('Register for Program'), findsNothing);
-      expect(find.text('Learners can register for this program from their portal.'),
+      expect(
+          find.text(
+              'Learners can register for this program from their portal.'),
           findsOneWidget);
     });
   });

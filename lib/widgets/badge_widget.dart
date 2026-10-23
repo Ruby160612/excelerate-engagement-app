@@ -22,16 +22,19 @@ class BadgeWidget extends StatelessWidget {
             color: AppColors.primaryLight,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: SvgPicture.asset('assets/icons/badge.svg', width: 32, height: 32),
+          child:
+              SvgPicture.asset('assets/icons/badge.svg', width: 32, height: 32),
         ),
         title: Text(
           badge.name,
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
           '${badge.description}'
           '${badge.earnedAt == null ? '' : '\nEarned ${DateFormat.yMMMd().format(badge.earnedAt!.toLocal())}'}',
-          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          style: theme.textTheme.bodyMedium
+              ?.copyWith(color: AppColors.textSecondary),
         ),
       ),
     );

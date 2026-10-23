@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/program.dart';
 import '../../models/user.dart';
-import '../../services/api_service.dart';
+import '../../services/program_repository.dart';
 import '../../services/auth_service.dart';
 import '../../utils/themes.dart';
 import '../../widgets/app_button.dart';
@@ -33,10 +33,10 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
   Future<void> _register() async {
     setState(() => _registering = true);
     try {
-      final id = Uri.encodeComponent(widget.program.id);
-      await context.read<ApiService>().post('/programs/$id/register', {});
+      final updated =
+          await context.read<ProgramRepository>().register(widget.program.id);
       if (mounted) {
-        setState(() => _isRegistered = true);
+        setState(() => _isRegistered = updated.isRegistered);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('You have successfully registered for this program!'),
@@ -44,11 +44,17 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
           ),
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
+        if (error is ProgramException &&
+            error.code == ProgramErrorCode.alreadyRegistered) {
+          setState(() => _isRegistered = true);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Unable to register. Please try again later.'),
+          SnackBar(
+            content: Text(error is ProgramException
+                ? error.message
+                : 'Unable to register. Please try again later.'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -58,10 +64,12 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
     }
   }
 
-  static String _categoryLabel(String category) =>
-      category.isEmpty ? 'Program' : category[0].toUpperCase() + category.substring(1);
+  static String _categoryLabel(String category) => category.isEmpty
+      ? 'Program'
+      : category[0].toUpperCase() + category.substring(1);
 
-  static IconData _categoryIcon(String category) => switch (category.toLowerCase()) {
+  static IconData _categoryIcon(String category) =>
+      switch (category.toLowerCase()) {
         'workshop' => Icons.build_outlined,
         'webinar' => Icons.videocam_outlined,
         'internship' => Icons.work_outline,
@@ -91,10 +99,12 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
                 icon: const Icon(Icons.arrow_back, size: 18),
                 label: const Text('Back to Programs'),
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 16, color: AppColors.textMuted),
+              const Icon(Icons.chevron_right,
+                  size: 16, color: AppColors.textMuted),
               StatusBadge.primary(
                 label: _categoryLabel(program.category),
                 icon: _categoryIcon(program.category),
@@ -300,7 +310,8 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
   }
 
   Widget _buildSidebar(ThemeData theme, Program program, bool isAdmin) {
-    final startFormatted = DateFormat.yMMMd().format(program.startDate.toLocal());
+    final startFormatted =
+        DateFormat.yMMMd().format(program.startDate.toLocal());
     final endFormatted = program.endDate != null
         ? DateFormat.yMMMd().format(program.endDate!.toLocal())
         : 'Ongoing / Flexible';
@@ -344,7 +355,9 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
             _buildDetailRow(
               icon: Icons.schedule_outlined,
               label: 'Schedule',
-              value: program.schedule.isNotEmpty ? program.schedule : 'To be announced',
+              value: program.schedule.isNotEmpty
+                  ? program.schedule
+                  : 'To be announced',
               theme: theme,
             ),
             const Divider(height: 20),
@@ -370,7 +383,8 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                      Icon(Icons.check_circle,
+                          color: AppColors.success, size: 20),
                       SizedBox(width: 8),
                       Flexible(
                         child: Text(
@@ -403,7 +417,8 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline, size: 18, color: AppColors.textSecondary),
+                    const Icon(Icons.info_outline,
+                        size: 18, color: AppColors.textSecondary),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
