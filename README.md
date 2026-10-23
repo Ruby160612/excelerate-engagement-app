@@ -132,3 +132,102 @@ Refer to the product and UX design rationale here:
 ## Repository
 
 - GitHub: https://github.com/Ruby160612/excelerate-engagement-app
+
+
+###For Firebase Integration ###
+
+## Backend / Firebase Integration Handoff
+
+The backend/data integration layer has been prepared so the Flutter UI is no longer tightly coupled to mock JSON or a single backend implementation.
+
+The current architecture is:
+
+`UI → ProgramStore → ProgramRepository → ProgramService → Mock / API / Firebase implementation`
+
+This allows the team to continue using mock data locally while a real Firebase-backed implementation is completed later without rewriting the program screens.
+
+### Current State
+
+- Firebase has been configured for the project.
+- `firebase_core`, `firebase_auth`, and `cloud_firestore` are installed.
+- Firebase platform configuration files have been generated.
+- Program models and backend-ready response models are defined.
+- Program IDs and registration IDs use `String` values and are ready for Firebase document IDs.
+- Program search, filtering, details, registration, loading, error, and retry flows are routed through the shared data layer.
+- `ProgramService` defines the backend-facing contract.
+- `MockProgramService` provides the current local/mock implementation.
+- `ApiProgramService` supports the existing API-style path.
+- `FirebaseProgramService` exists as the boundary for the future Firestore implementation.
+- `ProgramRepository` sits between application state and the selected service implementation.
+- `ProgramStore` remains the UI-facing state layer.
+- Backend request/response shapes, identifiers, relationships, and error/retry expectations are documented in `docs/PROGRAM_API_CONTRACT.md`.
+
+### Mock Mode
+
+The existing mock backend is still available and should be used for local development until the Firebase backend is fully implemented.
+
+Run the app with:
+
+```bash
+flutter run --dart-define=USE_MOCK=true
+```
+
+With `USE_MOCK=true`, the app uses the existing mock authentication and mock program data.
+
+Without that flag, `USE_MOCK` defaults to `false` and the application follows the non-mock/backend path.
+
+### Firebase / Firestore Direction
+
+The expected Firebase data structure is based around:
+
+```text
+programs/{programId}
+```
+
+and:
+
+```text
+program_registrations/{registrationId}
+```
+
+A registration should reference:
+
+```text
+programId
+learnerId
+status
+registeredAt
+```
+
+The future Firebase implementation should preserve the same `ProgramService` behavior as the mock implementation so existing screens and `ProgramStore` do not need to be rewritten.
+
+### Validation Completed
+
+The integration has been validated with:
+
+```bash
+flutter analyze
+flutter test
+flutter build apk --debug
+```
+
+The application has also been successfully built, installed, launched, and debugged on a physical Android device.
+
+Mock-mode login and program flows have been verified with:
+
+```bash
+flutter run --dart-define=USE_MOCK=true
+```
+
+### Next Developer Steps
+
+The next backend developer should:
+
+1. Implement the real Firestore logic inside the Firebase service layer.
+2. Connect real authentication and learner identity to Firebase Auth.
+3. Persist program registrations in Firestore.
+4. Preserve the existing service contract and `ProgramStore` flow.
+5. Keep mock mode available for development and testing.
+6. Review `docs/PROGRAM_API_CONTRACT.md` before changing request/response behavior.
+
+There is currently a separate UI/data issue where the name entered during signup is not reflected consistently after login. This should be handled independently from the program backend integration unless the real authentication/profile implementation naturally resolves it.
