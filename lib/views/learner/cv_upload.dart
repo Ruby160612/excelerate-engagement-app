@@ -129,7 +129,6 @@ class _CvUploadViewState extends State<CvUploadView> {
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   OutlinedButton.icon(
                     onPressed: _busy ? null : _pick,
                     icon: const Icon(Icons.attach_file),
@@ -138,7 +137,6 @@ class _CvUploadViewState extends State<CvUploadView> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
-
                   if (_file != null) ...[
                     const SizedBox(height: 16),
                     Container(
@@ -174,13 +172,14 @@ class _CvUploadViewState extends State<CvUploadView> {
                           IconButton(
                             icon: const Icon(Icons.close, size: 18),
                             tooltip: 'Remove',
-                            onPressed: _busy ? null : () => setState(() => _file = null),
+                            onPressed: _busy
+                                ? null
+                                : () => setState(() => _file = null),
                           ),
                         ],
                       ),
                     ),
                   ],
-
                   const SizedBox(height: 20),
                   AppButton(
                     label: 'Upload CV',
@@ -188,31 +187,40 @@ class _CvUploadViewState extends State<CvUploadView> {
                     isFullWidth: true,
                     onPressed: _file == null ? null : _upload,
                   ),
-
                   if (_message != null) ...[
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _isSuccess ? AppColors.successLight : AppColors.errorLight,
+                        color: _isSuccess
+                            ? AppColors.successLight
+                            : AppColors.errorLight,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: _isSuccess ? AppColors.successBorder : AppColors.errorBorder,
+                          color: _isSuccess
+                              ? AppColors.successBorder
+                              : AppColors.errorBorder,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            _isSuccess ? Icons.check_circle_outline : Icons.error_outline,
+                            _isSuccess
+                                ? Icons.check_circle_outline
+                                : Icons.error_outline,
                             size: 18,
-                            color: _isSuccess ? AppColors.success : AppColors.error,
+                            color: _isSuccess
+                                ? AppColors.success
+                                : AppColors.error,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _message!,
                               style: TextStyle(
-                                color: _isSuccess ? AppColors.success : AppColors.error,
+                                color: _isSuccess
+                                    ? AppColors.success
+                                    : AppColors.error,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),

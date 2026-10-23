@@ -1,4 +1,7 @@
 import 'package:excelerate_talent_hub/main.dart';
+import 'package:excelerate_talent_hub/models/program.dart';
+import 'package:excelerate_talent_hub/models/program_responses.dart';
+import 'package:excelerate_talent_hub/services/program_service.dart';
 import 'package:excelerate_talent_hub/services/mock_api.dart';
 import 'package:excelerate_talent_hub/utils/constants.dart';
 import 'package:excelerate_talent_hub/views/shared/program_details.dart';
@@ -27,7 +30,73 @@ Future<void> _signIn(WidgetTester tester, String email, String password) async {
   await tester.pumpAndSettle();
 }
 
+// A transport-free replacement proves the app consumes ProgramService only.
+class _ReplacementProgramService implements ProgramService {
+  Program _program = Program(
+    id: 'replacement-1',
+    title: 'Service-supplied course',
+    description: 'A replacement source.',
+    startDate: DateTime.utc(2027),
+    schedule: 'Weekly',
+    category: 'course',
+  );
+  @override
+  Future<ProgramListResponse> getPrograms(
+          {String? search, String? category}) async =>
+      ProgramListResponse([_program]);
+  @override
+  Future<ProgramDetailResponse> getProgramById(String id) async =>
+      ProgramDetailResponse(_program);
+  @override
+  Future<ProgramRegistrationResponse> registerForProgram(String id) async {
+    _program = _program.copyWith(isRegistered: true);
+    return ProgramRegistrationResponse(_program);
+  }
+}
+
 void main() {
+  testWidgets(
+      'swapping ProgramService supplies list, details, registration and dashboard',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(ExcelerateApp(
+      preferences: await SharedPreferences.getInstance(),
+      apiBaseUrl: MockApi.baseUrl,
+      apiClient: MockApi(latency: Duration.zero).client,
+      programService: _ReplacementProgramService(),
+    ));
+    await tester.pumpAndSettle();
+    await _signIn(tester, 'member@example.com', 'member123');
+    expect(
+        tester
+            .widget<Text>(
+                find.byKey(const ValueKey('metric-Registered programs')))
+            .data,
+        '0');
+    await tester.tap(find.text('Explore programs'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramCard), findsOneWidget);
+    expect(find.text('Digital Skills Bootcamp'), findsNothing);
+    await tester.tap(find.text('Service-supplied course'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Register for Program'));
+    await tester.tap(find.text('Register for Program'));
+    await tester.pumpAndSettle();
+    expect(find.text('You are enrolled in this program'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Register'), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<Text>(
+                find.byKey(const ValueKey('metric-Registered programs')))
+            .data,
+        '1');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a learner opens the listing and a card opens its details',
       (tester) async {
     final navigator = await _launch(tester);

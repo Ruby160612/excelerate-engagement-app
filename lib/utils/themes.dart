@@ -5,12 +5,16 @@ abstract final class AppColors {
   // Brand Colours
   /// Primary Excelerate Orange
   static const Color primary = Color(0xFFFF4500);
+
   /// Darker shade for high contrast, active states, and headings
   static const Color primaryDark = Color(0xFFC73600);
+
   /// Soft orange tint for container backgrounds and badges
   static const Color primaryLight = Color(0xFFFFF0E8);
+
   /// Very light orange for subtle gradients
   static const Color primaryLighter = Color(0xFFFFF8F2);
+
   /// Delicate border for primary-accented elements
   static const Color primaryBorder = Color(0xFFFFD9C7);
 
@@ -216,7 +220,8 @@ abstract final class AppThemes {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.border),
@@ -238,7 +243,8 @@ abstract final class AppThemes {
           borderSide: const BorderSide(color: AppColors.error, width: 2),
         ),
         hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
-        labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        labelStyle:
+            const TextStyle(color: AppColors.textSecondary, fontSize: 14),
       ),
 
       // Button Themes

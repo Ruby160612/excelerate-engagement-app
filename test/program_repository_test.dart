@@ -162,7 +162,9 @@ void main() {
           throwsA(isA<ProgramException>()
               .having((e) => e.kind, 'kind', ProgramFailure.unavailable)
               .having((e) => e.message, 'message',
-                  'Unable to register. Please try again.')));
+                  'You do not have permission to perform this action.')
+              .having((e) => e.code, 'code', ProgramErrorCode.permissionDenied)
+              .having((e) => e.retryable, 'retryable', false)));
     });
   });
 

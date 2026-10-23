@@ -1,13 +1,17 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'firebase_options.dart';
 import 'services/api_service.dart';
+import 'services/api_program_service.dart';
 import 'services/auth_service.dart';
 import 'services/mock_api.dart';
+import 'services/mock_program_service.dart';
 import 'services/program_repository.dart';
 import 'services/storage_service.dart';
 import 'state/program_store.dart';
@@ -17,50 +21,87 @@ import 'utils/themes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (!AppConstants.useMock) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+
   final preferences = await SharedPreferences.getInstance();
-  runApp(AppConstants.useMock
-      ? ExcelerateApp(
-          preferences: preferences,
-          apiBaseUrl: MockApi.baseUrl,
-          apiClient: MockApi().client)
-      : ExcelerateApp(preferences: preferences));
+
+  runApp(
+    AppConstants.useMock
+        ? ExcelerateApp(
+            preferences: preferences,
+            apiBaseUrl: MockApi.baseUrl,
+            apiClient: MockApi().client,
+          )
+        : ExcelerateApp(
+            preferences: preferences,
+          ),
+  );
 }
 
 class ExcelerateApp extends StatelessWidget {
-  const ExcelerateApp(
-      {super.key,
-      required this.preferences,
-      this.apiBaseUrl = AppConstants.apiBaseUrl,
-      this.apiClient});
+  const ExcelerateApp({
+    super.key,
+    required this.preferences,
+    this.apiBaseUrl = AppConstants.apiBaseUrl,
+    this.apiClient,
+    this.programService,
+  });
+
   final SharedPreferences preferences;
   final String apiBaseUrl;
   final http.Client? apiClient;
+  final ProgramService? programService;
 
   @override
   Widget build(BuildContext context) => MultiProvider(
         providers: [
-          Provider<StorageService>(create: (_) => StorageService(preferences)),
+          Provider<StorageService>(
+            create: (_) => StorageService(preferences),
+          ),
           Provider<ApiService>(
-              create: (_) => ApiService(baseUrl: apiBaseUrl, client: apiClient),
-              dispose: (_, api) => api.dispose()),
+            create: (_) => ApiService(
+              baseUrl: apiBaseUrl,
+              client: apiClient,
+            ),
+            dispose: (_, api) => api.dispose(),
+          ),
+          Provider<ProgramService>(
+            create: (context) =>
+                programService ??
+                (apiBaseUrl == MockApi.baseUrl
+                    ? MockProgramService(context.read<ApiService>())
+                    : ApiProgramService(context.read<ApiService>())),
+          ),
           Provider<ProgramRepository>(
-              create: (context) =>
-                  ApiProgramRepository(context.read<ApiService>())),
+            create: (context) =>
+                ServiceProgramRepository(context.read<ProgramService>()),
+          ),
           ChangeNotifierProvider<ProgramStore>(
-              create: (context) =>
-                  ProgramStore(context.read<ProgramRepository>())),
-          ChangeNotifierProvider<AuthService>(create: (context) {
-            final auth = AuthService(
-                context.read<ApiService>(), context.read<StorageService>());
-            unawaited(auth.restoreSession());
-            return auth;
-          }),
+            create: (context) =>
+                ProgramStore(context.read<ProgramRepository>()),
+          ),
+          ChangeNotifierProvider<AuthService>(
+            create: (context) {
+              final auth = AuthService(
+                context.read<ApiService>(),
+                context.read<StorageService>(),
+              );
+              unawaited(auth.restoreSession());
+              return auth;
+            },
+          ),
         ],
         child: MaterialApp(
-            title: AppConstants.name,
-            debugShowCheckedModeBanner: false,
-            theme: AppThemes.light,
-            initialRoute: AppRoutes.home,
-            onGenerateRoute: AppRouter.generate),
+          title: AppConstants.name,
+          debugShowCheckedModeBanner: false,
+          theme: AppThemes.light,
+          initialRoute: AppRoutes.home,
+          onGenerateRoute: AppRouter.generate,
+        ),
       );
 }

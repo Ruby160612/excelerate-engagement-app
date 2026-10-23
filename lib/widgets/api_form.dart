@@ -118,8 +118,7 @@ class _ApiFormState extends State<ApiForm> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          _message =
-              'Unable to save. Please check your details and try again.';
+          _message = 'Unable to save. Please check your details and try again.';
           _isSuccess = false;
         });
       }

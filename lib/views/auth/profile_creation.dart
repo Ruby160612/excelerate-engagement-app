@@ -114,9 +114,8 @@ class _ProfileCreationViewState extends State<ProfileCreationView> {
                     labelText: 'Professional headline',
                     hintText: 'e.g. Aspiring Software Engineer',
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? 'Enter a headline'
-                      : null,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Enter a headline' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -125,7 +124,8 @@ class _ProfileCreationViewState extends State<ProfileCreationView> {
                   maxLines: 5,
                   decoration: const InputDecoration(
                     labelText: 'About you',
-                    hintText: 'Share a brief summary of your background and goals',
+                    hintText:
+                        'Share a brief summary of your background and goals',
                   ),
                   validator: (v) => v == null || v.trim().isEmpty
                       ? 'Tell us about yourself'

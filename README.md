@@ -91,54 +91,25 @@ The screenshots below show key UI screens from the app. The image files are stor
 
 ## Program Data Flow
 
-The program listing and the program details screens read data through one layer, so the data source can change without touching the screens.
+Program list, detail, registration and learner dashboard counts use typed models:
 
 ```text
-Screen (ProgramsListView / ProgramDetailsLoader)
-  -> ProgramRepository   (lib/services/program_repository.dart)
-    -> ApiService        (HTTP)
-      -> mock API when USE_MOCK=true, otherwise the real backend
+Program screens -> ProgramStore -> ProgramRepository -> ProgramService
+Detail loader / dashboard -> ProgramRepository -> ProgramService
+  -> MockProgramService -> existing MockApi + assets/data/programs.json
+  -> ApiProgramService -> existing HTTP API
+  -> FirebaseProgramService (placeholder; not enabled by default)
 ```
 
-| File | Role |
-| --- | --- |
-| `lib/models/program.dart` | `Program` model (`fromJson` / `toJson`) |
-| `lib/services/program_repository.dart` | `ProgramRepository` and `ApiProgramRepository`, plus the `ProgramException` error types |
-| `lib/services/mock_api.dart` | In-memory API used in mock mode |
-| `assets/data/programs.json` | Sample programs served by the mock API |
-| `lib/views/learner/programs_list.dart` | Listing with search, category filter and Register |
-| `lib/views/shared/program_details_loader.dart` | Loads one program by id and opens the details screen |
+`ExcelerateApp(programService: ...)` accepts another implementation without screen changes.
+Mock mode keeps the existing per-learner state, loading, search/category filters,
+empty states and manual retry controls. Registrations update subsequent reads;
+duplicates produce a typed `alreadyRegistered` error. Mock state resets on restart.
 
-Routes: the listing is `/learner/programs` and details is `/program-details/<id>`. Details loads the program by id, so it does not depend on the list.
-
-### Endpoints
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| GET | `/programs` | Array of programs. `is_registered` reflects the signed-in user |
-| GET | `/programs/:id` | One program. `404` if it does not exist |
-| POST | `/programs/:id/register` | Learner only. Returns the program with `is_registered: true`. `403` for admins |
-
-### Program record
-
-Required: `id`, `title`, `start_date` (ISO 8601) and `category` (for example `course`, `workshop`, `webinar` or `internship`).
-Optional: `description`, `end_date`, `schedule`, `eligibility` (array of strings), `outcomes` (array of strings), `image_url`, `is_registered`.
-
-### Errors
-
-| Kind | When | What the user sees |
-| --- | --- | --- |
-| Not found | `404` for a program id | "This program could not be found." with a back button |
-| Invalid data | Body is not JSON, wrong shape, a record is missing required fields, or the returned id does not match | Details: "This program's information is incomplete or invalid." In the list, broken records are skipped and a notice says how many ("The programs data is invalid." if the whole response is not a list) |
-| Unavailable | Offline, timeout or server error | "Unable to load ... Please try again." with Retry |
-
-### Working with the data layer
-
-- To change the sample programs, edit `assets/data/programs.json`.
-- To use a real backend, set `API_BASE_URL`. If its responses differ, only `ApiProgramRepository` needs to change.
-- Loading, error and skipped-record state currently lives in `ProgramsListView` and `ProgramDetailsLoader`. Shared state management can be built on top of `ProgramRepository`.
-- `ProgramDetailsView` still registers through `ApiService` directly. Moving it to `ProgramRepository.register` gives one registration path.
-- Tests: `test/program_repository_test.dart` (repository against mocked HTTP and the mock API), `test/programs_list_test.dart`, `test/program_details_loader_test.dart` and `test/program_routes_test.dart`. Use `MockApi(programLoader: ...)` to inject bad data. `test/flutter_test_config.dart` pre-reads the sample programs for every test file.
+See [Program API contract](docs/PROGRAM_API_CONTRACT.md) for typed response shapes,
+legacy HTTP compatibility, database relationships, error/retry rules, the inspection
+inventory and the Firebase teammate handoff. Serialization uses the existing manual
+`fromJson` / `toJson` pattern; no code generator or live Firebase is required by tests.
 
 ### Mock mode sign-in
 

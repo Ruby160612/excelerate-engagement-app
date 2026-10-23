@@ -81,7 +81,9 @@ class _ApplicationReviewCardState extends State<ApplicationReviewCard> {
                   foregroundColor: AppColors.primary,
                   radius: 20,
                   child: Text(
-                    candidateName.isNotEmpty ? candidateName[0].toUpperCase() : '?',
+                    candidateName.isNotEmpty
+                        ? candidateName[0].toUpperCase()
+                        : '?',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
