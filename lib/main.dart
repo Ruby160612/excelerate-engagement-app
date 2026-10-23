@@ -10,6 +10,7 @@ import 'services/auth_service.dart';
 import 'services/mock_api.dart';
 import 'services/program_repository.dart';
 import 'services/storage_service.dart';
+import 'state/program_store.dart';
 import 'utils/app_router.dart';
 import 'utils/constants.dart';
 import 'utils/themes.dart';
@@ -45,6 +46,9 @@ class ExcelerateApp extends StatelessWidget {
           Provider<ProgramRepository>(
               create: (context) =>
                   ApiProgramRepository(context.read<ApiService>())),
+          ChangeNotifierProvider<ProgramStore>(
+              create: (context) =>
+                  ProgramStore(context.read<ProgramRepository>())),
           ChangeNotifierProvider<AuthService>(create: (context) {
             final auth = AuthService(
                 context.read<ApiService>(), context.read<StorageService>());

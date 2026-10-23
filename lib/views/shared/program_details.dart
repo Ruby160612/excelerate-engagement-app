@@ -4,8 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../../models/program.dart';
 import '../../models/user.dart';
-import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
+import '../../state/program_store.dart';
+import '../../state/submission_controller.dart';
 import '../../utils/themes.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/page_layout.dart';
@@ -21,41 +22,34 @@ class ProgramDetailsView extends StatefulWidget {
 }
 
 class _ProgramDetailsViewState extends State<ProgramDetailsView> {
-  late bool _isRegistered;
-  bool _registering = false;
+  final _registration = SubmissionController();
 
   @override
   void initState() {
     super.initState();
-    _isRegistered = widget.program.isRegistered;
+    _registration.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _registration.dispose();
+    super.dispose();
   }
 
   Future<void> _register() async {
-    setState(() => _registering = true);
-    try {
-      final id = Uri.encodeComponent(widget.program.id);
-      await context.read<ApiService>().post('/programs/$id/register', {});
-      if (mounted) {
-        setState(() => _isRegistered = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You have successfully registered for this program!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Unable to register. Please try again later.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _registering = false);
-    }
+    final store = context.read<ProgramStore>();
+    final ok = await _registration
+        .submit((_) => store.register(widget.program.id));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok
+            ? 'You have successfully registered for this program!'
+            : _registration.message ??
+                'Unable to register. Please try again later.'),
+        backgroundColor: ok ? AppColors.success : AppColors.error,
+      ),
+    );
   }
 
   static String _categoryLabel(String category) =>
@@ -73,7 +67,9 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
     final theme = Theme.of(context);
     final user = context.watch<AuthService>().user;
     final isAdmin = user?.role == UserRole.admin;
-    final program = widget.program;
+    final program =
+        context.watch<ProgramStore>().lookup(widget.program.id) ??
+            widget.program;
 
     return PageLayout(
       title: program.title,
@@ -99,7 +95,7 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
                 label: _categoryLabel(program.category),
                 icon: _categoryIcon(program.category),
               ),
-              if (_isRegistered)
+              if (program.isRegistered)
                 const StatusBadge.success(
                   label: 'Registered',
                   icon: Icons.check_circle_outline,
@@ -359,7 +355,7 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
 
             // Action / Status Area
             if (!isAdmin) ...[
-              if (_isRegistered)
+              if (program.isRegistered)
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -388,7 +384,7 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
               else
                 AppButton.primary(
                   label: 'Register for Program',
-                  loading: _registering,
+                  loading: _registration.isSubmitting,
                   isFullWidth: true,
                   icon: Icons.how_to_reg_outlined,
                   onPressed: _register,

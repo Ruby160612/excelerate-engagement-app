@@ -5,6 +5,7 @@ import '../../models/program.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
 import '../../services/program_repository.dart';
+import '../../state/program_store.dart';
 import '../../utils/constants.dart';
 import '../../widgets/page_layout.dart';
 import '../../widgets/program_card.dart';
@@ -18,12 +19,6 @@ class ProgramsListView extends StatefulWidget {
 
 class _ProgramsListViewState extends State<ProgramsListView> {
   final _search = TextEditingController();
-  final _registering = <String>{};
-  List<Program>? _programs;
-  bool _loading = true;
-  bool _failed = false;
-  String _errorMessage = _loadFailed;
-  int _skipped = 0;
   String? _category;
 
   static const _loadFailed = 'Unable to load this page. Please try again.';
@@ -31,7 +26,10 @@ class _ProgramsListViewState extends State<ProgramsListView> {
   @override
   void initState() {
     super.initState();
-    _load();
+    // Wait until the first frame so the store is not changed while building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ProgramStore>().loadPrograms();
+    });
   }
 
   @override
@@ -40,68 +38,30 @@ class _ProgramsListViewState extends State<ProgramsListView> {
     super.dispose();
   }
 
-  Future<void> _load({bool silent = false}) async {
-    try {
-      final result = await context.read<ProgramRepository>().fetchPrograms();
-      if (mounted) {
-        setState(() {
-          _programs = result.programs;
-          _skipped = result.skipped;
-          _failed = false;
-          _loading = false;
-        });
-      }
-    } catch (error) {
-      if (!silent && mounted) {
-        setState(() {
-          _errorMessage = _messageOf(error, _loadFailed);
-          _failed = true;
-          _loading = false;
-        });
-      }
-    }
-  }
-
   static String _messageOf(Object error, String fallback) =>
       error is ProgramException ? error.message : fallback;
 
-  void _retry() {
-    setState(() {
-      _loading = true;
-      _failed = false;
-    });
-    _load();
-  }
+  void _retry() => context.read<ProgramStore>().loadPrograms();
 
   Future<void> _register(Program program) async {
-    setState(() => _registering.add(program.id));
     try {
-      final updated =
-          await context.read<ProgramRepository>().register(program.id);
-      if (mounted) {
-        setState(() => _programs = [
-              for (final p in _programs!) p.id == updated.id ? updated : p,
-            ]);
-      }
+      await context.read<ProgramStore>().register(program.id);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
                 _messageOf(error, 'Unable to register. Please try again.'))));
       }
-    } finally {
-      if (mounted) setState(() => _registering.remove(program.id));
     }
   }
 
-  List<String> get _categories => {
-        for (final program in _programs ?? const <Program>[]) program.category,
-      }.toList();
+  List<String> _categoriesOf(List<Program> programs) =>
+      {for (final program in programs) program.category}.toList();
 
-  List<Program> get _visible {
+  List<Program> _visibleOf(List<Program> programs) {
     final query = _search.text.trim().toLowerCase();
     return [
-      for (final program in _programs ?? const <Program>[])
+      for (final program in programs)
         if ((_category == null || program.category == _category) &&
             (query.isEmpty ||
                 program.title.toLowerCase().contains(query) ||
@@ -116,6 +76,8 @@ class _ProgramsListViewState extends State<ProgramsListView> {
   @override
   Widget build(BuildContext context) {
     final admin = context.watch<AuthService>().user?.role == UserRole.admin;
+    final store = context.watch<ProgramStore>();
+    final categories = _categoriesOf(store.programs);
     return PageLayout(
       title: 'Development programs',
       maxWidth: 1040,
@@ -140,28 +102,29 @@ class _ProgramsListViewState extends State<ProgramsListView> {
               ),
             ),
           ),
-          if (_categories.isNotEmpty) ...[
+          if (categories.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _chips(Theme.of(context).colorScheme),
+            _chips(Theme.of(context).colorScheme, categories),
           ],
           const SizedBox(height: 16),
-          if (_programs != null && _skipped > 0) _skippedNotice(),
-          _content(admin),
+          if (store.listStatus == LoadStatus.loaded && store.skipped > 0)
+            _skippedNotice(store.skipped),
+          _content(store, admin),
         ],
       ),
     );
   }
 
-  Widget _skippedNotice() => Padding(
+  Widget _skippedNotice(int skipped) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Row(
           children: [
             const Icon(Icons.info_outline, size: 18),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(_skipped == 1
+              child: Text(skipped == 1
                   ? 'One program could not be shown.'
-                  : '$_skipped programs could not be shown.'),
+                  : '$skipped programs could not be shown.'),
             ),
           ],
         ),
@@ -169,15 +132,15 @@ class _ProgramsListViewState extends State<ProgramsListView> {
 
   Future<void> _open(Program program) async {
     await Navigator.pushNamed(context, AppRoutes.programDetailsFor(program.id));
-    if (mounted) _load(silent: true);
+    if (mounted) context.read<ProgramStore>().loadPrograms(silent: true);
   }
 
-  Widget _chips(ColorScheme scheme) => SizedBox(
+  Widget _chips(ColorScheme scheme, List<String> categories) => SizedBox(
         height: MediaQuery.textScalerOf(context).scale(44),
         child: ListView(
           scrollDirection: Axis.horizontal,
           children: [
-            for (final category in [null, ..._categories])
+            for (final category in [null, ...categories])
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: ChoiceChip(
@@ -196,23 +159,24 @@ class _ProgramsListViewState extends State<ProgramsListView> {
         ),
       );
 
-  Widget _content(bool admin) {
-    if (_loading) {
+  Widget _content(ProgramStore store, bool admin) {
+    final status = store.listStatus;
+    if (status == LoadStatus.idle || status == LoadStatus.loading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 32),
         child: Center(child: CircularProgressIndicator()),
       );
     }
-    if (_failed) {
+    if (status == LoadStatus.error) {
       return Column(children: [
-        Text(_errorMessage),
+        Text(store.listError ?? _loadFailed),
         TextButton(onPressed: _retry, child: const Text('Retry')),
       ]);
     }
-    if (_programs!.isEmpty) {
+    if (store.programs.isEmpty) {
       return const Text('New development programs will appear here.');
     }
-    final programs = _visible;
+    final programs = _visibleOf(store.programs);
     if (programs.isEmpty) {
       return const Text('No programs match your search.');
     }
@@ -232,7 +196,7 @@ class _ProgramsListViewState extends State<ProgramsListView> {
                 width: cardWidth,
                 child: ProgramCard(
                   program: program,
-                  registering: _registering.contains(program.id),
+                  registering: store.isRegistering(program.id),
                   onRegister: admin ? null : () => _register(program),
                   onTap: () => _open(program),
                 ),

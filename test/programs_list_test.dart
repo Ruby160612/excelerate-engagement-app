@@ -5,6 +5,7 @@ import 'package:excelerate_talent_hub/services/auth_service.dart';
 import 'package:excelerate_talent_hub/services/mock_api.dart';
 import 'package:excelerate_talent_hub/services/program_repository.dart';
 import 'package:excelerate_talent_hub/services/storage_service.dart';
+import 'package:excelerate_talent_hub/state/program_store.dart';
 import 'package:excelerate_talent_hub/utils/constants.dart';
 import 'package:excelerate_talent_hub/utils/themes.dart';
 import 'package:excelerate_talent_hub/views/learner/programs_list.dart';
@@ -52,6 +53,8 @@ Future<ApiService> _pump(
     providers: [
       Provider<ApiService>.value(value: api),
       Provider<ProgramRepository>.value(value: ApiProgramRepository(api)),
+      ChangeNotifierProvider<ProgramStore>(
+          create: (_) => ProgramStore(ApiProgramRepository(api))),
       ChangeNotifierProvider<AuthService>.value(value: auth),
     ],
     child: MaterialApp(
