@@ -136,8 +136,8 @@ Optional: `description`, `end_date`, `schedule`, `eligibility` (array of strings
 
 - To change the sample programs, edit `assets/data/programs.json`.
 - To use a real backend, set `API_BASE_URL`. If its responses differ, only `ApiProgramRepository` needs to change.
-- Loading, error and skipped-record state currently lives in `ProgramsListView` and `ProgramDetailsLoader`. Shared state management can be built on top of `ProgramRepository`.
-- `ProgramDetailsView` still registers through `ApiService` directly. Moving it to `ProgramRepository.register` gives one registration path.
+- The program list, the selected program and registration state are held by `ProgramStore` (see State Management below), which sits on top of `ProgramRepository`. `ProgramDetailsLoader` still loads one program by id on its own.
+- Registration goes through `ProgramStore.register`, so the list and the details screen show the same registered state.
 - Tests: `test/program_repository_test.dart` (repository against mocked HTTP and the mock API), `test/programs_list_test.dart`, `test/program_details_loader_test.dart` and `test/program_routes_test.dart`. Use `MockApi(programLoader: ...)` to inject bad data. `test/flutter_test_config.dart` pre-reads the sample programs for every test file.
 
 ### Mock mode sign-in
@@ -151,6 +151,36 @@ Run with `--dart-define=USE_MOCK=true` and sign in with:
 | Admin | `admin@example.com` | `admin123` |
 
 The signup invitation code in mock mode is `EXCEL2026`. The mock backend lives in memory, so registrations and sessions reset when the app restarts or the browser page is refreshed.
+
+## State Management
+
+The app uses Provider. Two classes in `lib/state/` hold the shared state so screens do not keep duplicate copies of it.
+
+| File | Role |
+| --- | --- |
+| `lib/state/program_store.dart` | `ProgramStore`: the program list (idle / loading / loaded / error), the selected program and registration. A quiet refresh keeps the current list if it fails. A second register call for the same program is ignored while one is running |
+| `lib/state/submission_controller.dart` | `SubmissionController`: form values, per-field validators and error messages, and the submit status |
+
+Submit status flow: `idle -> validating -> submitting -> success`, or `idle -> validating -> error`. While a request is running, further submits are ignored. `reset()` returns the form to idle and clears the values (or keeps them with `reset(keepValues: true)`), so an error never stays stuck after a retry.
+
+Using the controller in a form:
+
+```dart
+final form = SubmissionController(
+  initialValues: {'email': ''},
+  validators: {'email': (v) => v.isEmpty ? 'Enter your email' : null},
+);
+
+form.setValue('email', text);                 // on every change
+final ok = await form.submit((values) async { // validates, then runs the action
+  await api.send(values);
+});
+// Read form.status, form.isSubmitting, form.errorOf('email') and form.message in the UI.
+```
+
+Screens that read the state: `ProgramsListView` and `ProgramDetailsView` (Register). Forms being connected to `SubmissionController` under the state management task: the sign-up form (`lib/widgets/auth_form.dart`) and the Feedback form.
+
+Tests: `test/program_store_test.dart` and `test/submission_controller_test.dart` cover the state transitions, repeated submits and reset behaviour.
 
 ## Design Documentation
 
