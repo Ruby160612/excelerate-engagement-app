@@ -1,20 +1,53 @@
 import 'package:flutter/material.dart';
 
+import '../../state/submission_controller.dart';
+
 class FeedbackPage extends StatefulWidget {
-  const FeedbackPage({super.key});
+  const FeedbackPage({super.key, this.onSubmit});
+
+  /// Sends the feedback. The default only logs it; pass the real API call here
+  /// once the backend has a feedback endpoint.
+  final Future<void> Function(Map<String, String> values)? onSubmit;
 
   @override
   State<FeedbackPage> createState() => _FeedbackPageState();
 }
 
 class _FeedbackPageState extends State<FeedbackPage> {
-  final _formKey = GlobalKey<FormState>();
-
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _feedbackController = TextEditingController();
 
-  String _selectedCategory = 'Bug Report';
-  double _satisfactionRating = 3.0;
+  static const _defaults = {
+    'email': '',
+    'category': 'Bug Report',
+    'rating': '3',
+    'comments': '',
+  };
+
+  // One state source for the whole form: values, validation, submitting.
+  late final SubmissionController _form = SubmissionController(
+    initialValues: _defaults,
+    validators: {
+      'email': _validateEmail,
+      'comments': _validateComments,
+    },
+  );
+
+  static String? _validateEmail(String value) {
+    if (value.trim().isEmpty) return 'Please enter your email';
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
+      return 'Please enter a valid email address';
+    }
+    return null;
+  }
+
+  static String? _validateComments(String value) {
+    if (value.trim().isEmpty) return 'Please share some details with us';
+    if (value.trim().length < 10) return 'Please write at least 10 characters';
+    return null;
+  }
+
+  double get _rating => double.tryParse(_form.valueOf('rating')) ?? 3.0;
 
   final List<String> _categories = [
     'Bug Report',
@@ -29,36 +62,46 @@ class _FeedbackPageState extends State<FeedbackPage> {
   static const Color borderGrey = Color(0xFFE0E0E0);
 
   @override
+  void initState() {
+    super.initState();
+    _form.addListener(() => setState(() {}));
+  }
+
+  @override
   void dispose() {
+    _form.dispose();
     _emailController.dispose();
     _feedbackController.dispose();
     super.dispose();
   }
 
-  void _submitFeedback() {
-    if (_formKey.currentState!.validate()) {
-      final email = _emailController.text.trim();
-      final comments = _feedbackController.text.trim();
+  Future<void> _logFeedback(Map<String, String> values) async {
+    debugPrint('--- NEW FEEDBACK RECEIVED ---');
+    debugPrint('From: ${values['email']?.trim()}');
+    debugPrint('Type: ${values['category']}');
+    debugPrint('Rating: ${values['rating']}/5');
+    debugPrint('Message: ${values['comments']?.trim()}');
+  }
 
-      debugPrint('--- NEW FEEDBACK RECEIVED ---');
-      debugPrint('From: $email');
-      debugPrint('Type: $_selectedCategory');
-      debugPrint('Rating: ${_satisfactionRating.toInt()}/5');
-      debugPrint('Message: $comments');
-
+  Future<void> _submitFeedback() async {
+    final ok = await _form.submit(widget.onSubmit ?? _logFeedback);
+    if (!mounted) return;
+    if (ok) {
+      // Back to a clean form with the starting values.
       _emailController.clear();
       _feedbackController.clear();
-      setState(() {
-        _satisfactionRating = 3.0;
-        _selectedCategory = 'Bug Report';
-      });
-
+      _form.reset();
+      _defaults.forEach(_form.setValue);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Thank you! Your feedback has been submitted.'),
           backgroundColor: brandOrange,
         ),
       );
+    } else if (_form.fieldErrors.isEmpty && _form.message != null) {
+      // The request failed (not a validation problem): say so.
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(_form.message!)));
     }
   }
 
@@ -79,7 +122,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 16.0),
         child: Form(
-          key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -129,7 +171,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                onChanged: (value) => _form.setValue('email', value),
                 decoration: InputDecoration(
+                  errorText: _form.errorOf('email'),
                   hintText: 'name@example.com',
                   hintStyle: const TextStyle(color: Color(0xFFC2C2C2)),
                   prefixIcon: const Icon(Icons.email_outlined,
@@ -154,16 +198,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                  if (!emailRegex.hasMatch(value.trim())) {
-                    return 'Please enter a valid email address';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 24),
               const Text(
@@ -176,7 +210,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                value: _form.valueOf('category'),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.category_outlined,
                       color: textMuted, size: 20),
@@ -199,11 +233,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   );
                 }).toList(),
                 onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _selectedCategory = newValue;
-                    });
-                  }
+                  if (newValue != null) _form.setValue('category', newValue);
                 },
               ),
               const SizedBox(height: 24),
@@ -219,7 +249,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     ),
                   ),
                   Text(
-                    '${_satisfactionRating.toInt()} / 5',
+                    '${_rating.toInt()} / 5',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: brandOrange,
@@ -236,16 +266,13 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   valueIndicatorColor: brandOrange,
                 ),
                 child: Slider(
-                  value: _satisfactionRating,
+                  value: _rating,
                   min: 1.0,
                   max: 5.0,
                   divisions: 4,
-                  label: _satisfactionRating.toInt().toString(),
-                  onChanged: (double value) {
-                    setState(() {
-                      _satisfactionRating = value;
-                    });
-                  },
+                  label: _rating.toInt().toString(),
+                  onChanged: (double value) =>
+                      _form.setValue('rating', value.toInt().toString()),
                 ),
               ),
               const SizedBox(height: 16),
@@ -262,7 +289,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 controller: _feedbackController,
                 maxLines: 4,
                 keyboardType: TextInputType.multiline,
+                onChanged: (value) => _form.setValue('comments', value),
                 decoration: InputDecoration(
+                  errorText: _form.errorOf('comments'),
                   hintText: 'Tell us what happened or what you\'d like to see...',
                   hintStyle: const TextStyle(
                     color: Color(0xFFC2C2C2),
@@ -288,19 +317,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please share some details with us';
-                  }
-                  if (value.trim().length < 10) {
-                    return 'Please write at least 10 characters';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 36),
               ElevatedButton(
-                onPressed: _submitFeedback,
+                onPressed: _form.canSubmit ? _submitFeedback : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: brandOrange,
                   foregroundColor: Colors.white,
@@ -310,14 +330,23 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
-                  'SUBMIT FEEDBACK',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
-                  ),
-                ),
+                child: _form.isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        'SUBMIT FEEDBACK',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
               ),
             ],
           ),
