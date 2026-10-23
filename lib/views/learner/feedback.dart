@@ -5,8 +5,6 @@ import '../../state/submission_controller.dart';
 class FeedbackPage extends StatefulWidget {
   const FeedbackPage({super.key, this.onSubmit});
 
-
-
   final Future<void> Function(Map<String, String> values)? onSubmit;
 
   @override
@@ -28,24 +26,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
   late final SubmissionController _form = SubmissionController(
     initialValues: _defaults,
     validators: {
-      'email': _validateEmail,
-      'comments': _validateComments,
+      'email': (value) => FormValidators.email(value),
+      'comments': (value) => FormValidators.feedback(value),
     },
   );
-
-  static String? _validateEmail(String value) {
-    if (value.trim().isEmpty) return 'Please enter your email';
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
-      return 'Please enter a valid email address';
-    }
-    return null;
-  }
-
-  static String? _validateComments(String value) {
-    if (value.trim().isEmpty) return 'Please share some details with us';
-    if (value.trim().length < 10) return 'Please write at least 10 characters';
-    return null;
-  }
 
   double get _rating => double.tryParse(_form.valueOf('rating')) ?? 3.0;
 
@@ -187,7 +171,8 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: brandOrange, width: 1.5),
+                    borderSide:
+                        const BorderSide(color: brandOrange, width: 1.5),
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -195,10 +180,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   ),
                   focusedErrorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+                    borderSide:
+                        const BorderSide(color: Colors.redAccent, width: 1.5),
                   ),
                 ),
-               validator: FormValidators.email,
               ),
               const SizedBox(height: 24),
               const Text(
@@ -224,13 +209,15 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: brandOrange, width: 1.5),
+                    borderSide:
+                        const BorderSide(color: brandOrange, width: 1.5),
                   ),
                 ),
                 items: _categories.map((String category) {
                   return DropdownMenuItem<String>(
                     value: category,
-                    child: Text(category, style: const TextStyle(color: textDark)),
+                    child:
+                        Text(category, style: const TextStyle(color: textDark)),
                   );
                 }).toList(),
                 onChanged: (String? newValue) {
@@ -293,7 +280,8 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 onChanged: (value) => _form.setValue('comments', value),
                 decoration: InputDecoration(
                   errorText: _form.errorOf('comments'),
-                  hintText: 'Tell us what happened or what you\'d like to see...',
+                  hintText:
+                      'Tell us what happened or what you\'d like to see...',
                   hintStyle: const TextStyle(
                     color: Color(0xFFC2C2C2),
                     fontSize: 14,
@@ -307,7 +295,8 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: brandOrange, width: 1.5),
+                    borderSide:
+                        const BorderSide(color: brandOrange, width: 1.5),
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -315,10 +304,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   ),
                   focusedErrorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+                    borderSide:
+                        const BorderSide(color: Colors.redAccent, width: 1.5),
                   ),
                 ),
-                validator: FormValidators.feedback,
               ),
               const SizedBox(height: 36),
               ElevatedButton(
@@ -338,7 +327,8 @@ class _FeedbackPageState extends State<FeedbackPage> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
                     : const Text(
