@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-
+import '../../utils/validators.dart';
 import '../../state/submission_controller.dart';
 
 class FeedbackPage extends StatefulWidget {
   const FeedbackPage({super.key, this.onSubmit});
 
-  /// Sends the feedback. The default only logs it; pass the real API call here
-  /// once the backend has a feedback endpoint.
+
+
   final Future<void> Function(Map<String, String> values)? onSubmit;
 
   @override
@@ -198,6 +198,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
                   ),
                 ),
+               validator: FormValidators.email,
               ),
               const SizedBox(height: 24),
               const Text(
@@ -317,6 +318,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
                   ),
                 ),
+                validator: FormValidators.feedback,
               ),
               const SizedBox(height: 36),
               ElevatedButton(
