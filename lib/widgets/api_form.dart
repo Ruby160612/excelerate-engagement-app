@@ -79,13 +79,13 @@ class _ApiFormState extends State<ApiForm> {
     if (mounted) {
       setState(() {
         _date = selected;
-        _message = null;
-        _isSuccess = false;
+        if (!_isSuccess) _message = null;
       });
     }
   }
 
   Future<void> _submit() async {
+    if (_busy) return;
     if (!_formKey.currentState!.validate()) return;
     if (_date == null || !_date!.isAfter(DateTime.now())) {
       setState(() {
@@ -115,11 +115,12 @@ class _ApiFormState extends State<ApiForm> {
           _isSuccess = true;
         });
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
-          _message =
-              'Unable to save. Please check your details and try again.';
+          _message = e is ApiException
+              ? e.message
+              : 'Unable to save. Please check your details and try again.';
           _isSuccess = false;
         });
       }
@@ -153,6 +154,11 @@ class _ApiFormState extends State<ApiForm> {
                       child: TextFormField(
                         controller: _controllers[field.key],
                         enabled: !_busy,
+                        onChanged: (_) {
+                          if (_message != null && !_isSuccess) {
+                            setState(() => _message = null);
+                          }
+                        },
                         maxLines: field.key == 'description' ? 5 : 1,
                         decoration: InputDecoration(labelText: field.value),
                         validator: (value) =>
@@ -182,7 +188,7 @@ class _ApiFormState extends State<ApiForm> {
                     label: widget.submitLabel,
                     loading: _busy,
                     isFullWidth: true,
-                    onPressed: _submit,
+                    onPressed: _busy ? null : _submit,
                   ),
                   if (_message != null) ...[
                     const SizedBox(height: 16),
@@ -222,6 +228,22 @@ class _ApiFormState extends State<ApiForm> {
                               ),
                             ),
                           ),
+                          if (!_isSuccess) ...[
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: _busy ? null : _submit,
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.error,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: const Text('Retry',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ],
                         ],
                       ),
                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/profile.dart';
+import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/themes.dart';
@@ -31,7 +32,14 @@ class _ProfileCreationViewState extends State<ProfileCreationView> {
     super.dispose();
   }
 
+  void _onFieldChanged() {
+    if (_error != null) {
+      setState(() => _error = null);
+    }
+  }
+
   Future<void> _save() async {
+    if (_busy) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _busy = true;
@@ -53,10 +61,13 @@ class _ProfileCreationViewState extends State<ProfileCreationView> {
         Navigator.pushNamedAndRemoveUntil(
             context, AppRoutes.home, (_) => false);
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        setState(
-            () => _error = 'Unable to save your profile. Please try again.');
+        setState(() {
+          _error = e is ApiException
+              ? e.message
+              : 'Unable to save your profile. Please try again.';
+        });
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -110,6 +121,8 @@ class _ProfileCreationViewState extends State<ProfileCreationView> {
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _headline,
+                  enabled: !_busy,
+                  onChanged: (_) => _onFieldChanged(),
                   decoration: const InputDecoration(
                     labelText: 'Professional headline',
                     hintText: 'e.g. Aspiring Software Engineer',
@@ -121,6 +134,8 @@ class _ProfileCreationViewState extends State<ProfileCreationView> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _bio,
+                  enabled: !_busy,
+                  onChanged: (_) => _onFieldChanged(),
                   minLines: 3,
                   maxLines: 5,
                   decoration: const InputDecoration(
@@ -134,6 +149,8 @@ class _ProfileCreationViewState extends State<ProfileCreationView> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _skills,
+                  enabled: !_busy,
+                  onChanged: (_) => _onFieldChanged(),
                   decoration: const InputDecoration(
                     labelText: 'Skills',
                     helperText: 'Separate skills with commas',
@@ -147,11 +164,44 @@ class _ProfileCreationViewState extends State<ProfileCreationView> {
                 if (_error != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 16),
-                    child: Text(
-                      _error!,
-                      style: TextStyle(
-                        color: theme.colorScheme.error,
-                        fontWeight: FontWeight.w500,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.errorLight,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.errorBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 18,
+                            color: AppColors.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _error!,
+                              style: const TextStyle(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            onPressed: _busy ? null : _save,
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text('Retry',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
                       ),
                     ),
                   ),

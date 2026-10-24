@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:excelerate_talent_hub/models/program.dart';
 import 'package:excelerate_talent_hub/services/api_service.dart';
 import 'package:excelerate_talent_hub/services/auth_service.dart';
 import 'package:excelerate_talent_hub/services/mock_api.dart';
+import 'package:excelerate_talent_hub/services/mock_data.dart';
 import 'package:excelerate_talent_hub/services/storage_service.dart';
 import 'package:excelerate_talent_hub/utils/constants.dart';
 import 'package:excelerate_talent_hub/utils/themes.dart';
@@ -157,7 +159,7 @@ void main() {
               ? http.Response('{}', 500)
               : _forward(mock, request)),
     );
-    expect(find.text('Unable to load this page. Please try again.'),
+    expect(find.text("We couldn't load programs. Try again."),
         findsOneWidget);
     await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
@@ -174,6 +176,71 @@ void main() {
     );
     expect(find.text('New development programs will appear here.'),
         findsOneWidget);
+  });
+
+  testWidgets('displays loading indicator while programs are being fetched',
+      (tester) async {
+    final completer = Completer<http.Response>();
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    final api = ApiService(
+      baseUrl: MockApi.baseUrl,
+      client: MockClient((request) async {
+        if (request.url.path.endsWith('/programs')) {
+          return completer.future;
+        }
+        return http.Response('[]', 200);
+      }),
+    );
+    addTearDown(api.dispose);
+    final auth = AuthService(api, StorageService(preferences));
+    addTearDown(auth.dispose);
+
+    await tester.pumpWidget(MultiProvider(
+      providers: [
+        Provider<ApiService>.value(value: api),
+        ChangeNotifierProvider<AuthService>.value(value: auth),
+      ],
+      child: MaterialApp(
+        theme: AppThemes.light,
+        home: const ProgramsListView(),
+      ),
+    ));
+
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    completer.complete(http.Response(jsonEncode(mockPrograms), 200));
+    await tester.pumpAndSettle();
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.byType(ProgramCard), findsWidgets);
+  });
+
+  testWidgets('failed registration provides a retry action that succeeds',
+      (tester) async {
+    var registerCalls = 0;
+    await _pump(
+      tester,
+      wrap: (mock) => MockClient((request) async {
+        if (request.url.path.endsWith('/register')) {
+          registerCalls++;
+          if (registerCalls == 1) {
+            return http.Response('{"message":"Temporary failure"}', 500);
+          }
+        }
+        return _forward(mock, request);
+      }),
+    );
+    expect(find.text('Register'), findsNWidgets(7));
+    await tester.ensureVisible(find.text('Register').first);
+    await tester.tap(find.text('Register').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Retry'), findsOneWidget);
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Registered successfully!'), findsOneWidget);
   });
 
   for (final size in const [Size(320, 640), Size(360, 800), Size(430, 932)]) {

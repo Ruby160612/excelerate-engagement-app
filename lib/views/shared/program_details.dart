@@ -31,6 +31,7 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
   }
 
   Future<void> _register() async {
+    if (_registering) return;
     setState(() => _registering = true);
     try {
       final id = Uri.encodeComponent(widget.program.id);
@@ -47,9 +48,14 @@ class _ProgramDetailsViewState extends State<ProgramDetailsView> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Unable to register. Please try again later.'),
+          SnackBar(
+            content: const Text('Unable to register. Please try again later.'),
             backgroundColor: AppColors.error,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _register,
+            ),
           ),
         );
       }

@@ -37,6 +37,7 @@ class _ApplicationReviewCardState extends State<ApplicationReviewCard> {
   }
 
   Future<void> _shortlist() async {
+    if (_busy) return;
     setState(() => _busy = true);
     try {
       final id = Uri.encodeComponent(widget.application['id'].toString());
@@ -46,9 +47,16 @@ class _ApplicationReviewCardState extends State<ApplicationReviewCard> {
       if (mounted) setState(() => _status = 'shortlisted');
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content:
-                Text('Unable to shortlist this candidate. Please try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              const Text('Unable to shortlist this candidate. Please try again.'),
+          backgroundColor: AppColors.error,
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: _shortlist,
+          ),
+        ));
       }
     } finally {
       if (mounted) setState(() => _busy = false);

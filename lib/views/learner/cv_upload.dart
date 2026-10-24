@@ -22,6 +22,7 @@ class _CvUploadViewState extends State<CvUploadView> {
   bool _isSuccess = false;
 
   Future<void> _pick() async {
+    if (_busy) return;
     setState(() {
       _busy = true;
       _message = null;
@@ -58,6 +59,7 @@ class _CvUploadViewState extends State<CvUploadView> {
   }
 
   Future<void> _upload() async {
+    if (_busy) return;
     final file = _file;
     if (file?.bytes == null) return;
     setState(() {
@@ -73,10 +75,12 @@ class _CvUploadViewState extends State<CvUploadView> {
           _isSuccess = true;
         });
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
-          _message = 'Unable to upload your CV. Please try again.';
+          _message = e is ApiException
+              ? e.message
+              : 'Unable to upload your CV. Please try again.';
           _isSuccess = false;
         });
       }
@@ -186,7 +190,7 @@ class _CvUploadViewState extends State<CvUploadView> {
                     label: 'Upload CV',
                     loading: _busy,
                     isFullWidth: true,
-                    onPressed: _file == null ? null : _upload,
+                    onPressed: _file == null || _busy ? null : _upload,
                   ),
 
                   if (_message != null) ...[
@@ -217,6 +221,21 @@ class _CvUploadViewState extends State<CvUploadView> {
                               ),
                             ),
                           ),
+                          if (!_isSuccess && _file != null) ...[
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: _busy ? null : _upload,
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.error,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: const Text('Retry',
+                                  style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ],
                         ],
                       ),
                     ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -41,22 +42,48 @@ class ApiService {
         if (sessionToken != null) 'Authorization': 'Bearer $sessionToken',
       };
 
+  Future<http.Response> _send(Future<http.Response> Function() call) async {
+    try {
+      return await call().timeout(AppConstants.requestTimeout);
+    } on ApiException {
+      rethrow;
+    } on TimeoutException {
+      throw const ApiException(
+        'The request timed out. Please check your connection and try again.',
+      );
+    } on http.ClientException {
+      throw const ApiException(
+        'Unable to connect to the server. Please check your connection.',
+      );
+    } catch (e) {
+      final msg = e.toString();
+      if (msg.contains('SocketException') || msg.contains('Connection closed')) {
+        throw const ApiException(
+          'Unable to connect to the server. Please check your connection.',
+        );
+      }
+      rethrow;
+    }
+  }
+
   Future<dynamic> get(String path) async => _decode(
-        await _client
-            .get(_uri(path), headers: _headers)
-            .timeout(AppConstants.requestTimeout),
+        await _send(() => _client.get(_uri(path), headers: _headers)),
       );
 
   Future<dynamic> post(String path, Map<String, dynamic> body) async => _decode(
-        await _client
-            .post(_uri(path), headers: _headers, body: jsonEncode(body))
-            .timeout(AppConstants.requestTimeout),
+        await _send(() => _client.post(
+              _uri(path),
+              headers: _headers,
+              body: jsonEncode(body),
+            )),
       );
 
   Future<dynamic> put(String path, Map<String, dynamic> body) async => _decode(
-        await _client
-            .put(_uri(path), headers: _headers, body: jsonEncode(body))
-            .timeout(AppConstants.requestTimeout),
+        await _send(() => _client.put(
+              _uri(path),
+              headers: _headers,
+              body: jsonEncode(body),
+            )),
       );
 
   Future<void> uploadCv(String filename, Uint8List bytes) async {
@@ -73,11 +100,10 @@ class ApiService {
       })
       ..files
           .add(http.MultipartFile.fromBytes('cv', bytes, filename: filename));
-    final response = await (() async {
+    final response = await _send(() async {
       final stream = await _client.send(request);
       return http.Response.fromStream(stream);
-    })()
-        .timeout(AppConstants.requestTimeout);
+    });
     _decode(response);
   }
 

@@ -6,6 +6,9 @@ import '../../models/user.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/themes.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/error_card.dart';
 import '../../widgets/page_layout.dart';
 import '../../widgets/program_card.dart';
 
@@ -23,6 +26,7 @@ class _ProgramsListViewState extends State<ProgramsListView> {
   bool _loading = true;
   bool _failed = false;
   String? _category;
+  bool _inFlight = false;
 
   @override
   void initState() {
@@ -37,6 +41,13 @@ class _ProgramsListViewState extends State<ProgramsListView> {
   }
 
   Future<void> _load() async {
+    if (_inFlight) return;
+    _inFlight = true;
+    setState(() {
+      _loading = true;
+      _failed = false;
+    });
+
     try {
       final data = await context.read<ApiService>().get('/programs') as List;
       final programs = [
@@ -47,6 +58,7 @@ class _ProgramsListViewState extends State<ProgramsListView> {
         setState(() {
           _programs = programs;
           _loading = false;
+          _failed = false;
         });
       }
     } catch (_) {
@@ -56,19 +68,19 @@ class _ProgramsListViewState extends State<ProgramsListView> {
           _loading = false;
         });
       }
+    } finally {
+      _inFlight = false;
     }
   }
 
   void _retry() {
-    setState(() {
-      _loading = true;
-      _failed = false;
-    });
     _load();
   }
 
   Future<void> _register(Program program) async {
+    if (_registering.contains(program.id)) return;
     setState(() => _registering.add(program.id));
+
     try {
       final id = Uri.encodeComponent(program.id);
       final json = await context
@@ -79,11 +91,26 @@ class _ProgramsListViewState extends State<ProgramsListView> {
         setState(() => _programs = [
               for (final p in _programs!) p.id == updated.id ? updated : p,
             ]);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registered successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Unable to register. Please try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Unable to register. Please try again.'),
+            backgroundColor: AppColors.error,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _register(program),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _registering.remove(program.id));
@@ -174,22 +201,31 @@ class _ProgramsListViewState extends State<ProgramsListView> {
   Widget _content(bool admin) {
     if (_loading) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 32),
+        padding: EdgeInsets.symmetric(vertical: 48),
         child: Center(child: CircularProgressIndicator()),
       );
     }
     if (_failed) {
-      return Column(children: [
-        const Text('Unable to load this page. Please try again.'),
-        TextButton(onPressed: _retry, child: const Text('Retry')),
-      ]);
+      return ErrorCard(
+        title: 'Unable to load programs',
+        message: "We couldn't load programs. Try again.",
+        onRetry: _retry,
+      );
     }
     if (_programs!.isEmpty) {
-      return const Text('New development programs will appear here.');
+      return const EmptyStateWidget(
+        title: 'No programs available',
+        message: 'New development programs will appear here.',
+        icon: Icons.school_outlined,
+      );
     }
     final programs = _visible;
     if (programs.isEmpty) {
-      return const Text('No programs match your search.');
+      return const EmptyStateWidget(
+        title: 'No matching programs',
+        message: 'No programs match your search.',
+        icon: Icons.search_off_outlined,
+      );
     }
     return LayoutBuilder(
       builder: (context, constraints) {

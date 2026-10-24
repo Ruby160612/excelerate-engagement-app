@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../utils/validators.dart';
+
 import '../../state/submission_controller.dart';
+import '../../utils/themes.dart';
+import '../../utils/validators.dart';
 
 class FeedbackPage extends StatefulWidget {
   const FeedbackPage({super.key, this.onSubmit});
@@ -68,8 +70,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
   }
 
   Future<void> _submitFeedback() async {
+    if (!_form.canSubmit) return;
     final ok = await _form.submit(widget.onSubmit ?? _logFeedback);
     if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     if (ok) {
       // Back to a clean form with the starting values.
       _emailController.clear();
@@ -84,13 +88,24 @@ class _FeedbackPageState extends State<FeedbackPage> {
       );
     } else if (_form.fieldErrors.isEmpty && _form.message != null) {
       // The request failed (not a validation problem): say so.
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(_form.message!)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_form.message!),
+          backgroundColor: AppColors.error,
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: _submitFeedback,
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isSubmitting = _form.isSubmitting;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -154,6 +169,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _emailController,
+                enabled: !isSubmitting,
                 keyboardType: TextInputType.emailAddress,
                 onChanged: (value) => _form.setValue('email', value),
                 decoration: InputDecoration(
@@ -220,9 +236,13 @@ class _FeedbackPageState extends State<FeedbackPage> {
                         Text(category, style: const TextStyle(color: textDark)),
                   );
                 }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) _form.setValue('category', newValue);
-                },
+                onChanged: isSubmitting
+                    ? null
+                    : (String? newValue) {
+                        if (newValue != null) {
+                          _form.setValue('category', newValue);
+                        }
+                      },
               ),
               const SizedBox(height: 24),
               Row(
@@ -259,8 +279,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   max: 5.0,
                   divisions: 4,
                   label: _rating.toInt().toString(),
-                  onChanged: (double value) =>
-                      _form.setValue('rating', value.toInt().toString()),
+                  onChanged: isSubmitting
+                      ? null
+                      : (double value) =>
+                          _form.setValue('rating', value.toInt().toString()),
                 ),
               ),
               const SizedBox(height: 16),
@@ -275,6 +297,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _feedbackController,
+                enabled: !isSubmitting,
                 maxLines: 4,
                 keyboardType: TextInputType.multiline,
                 onChanged: (value) => _form.setValue('comments', value),
@@ -309,6 +332,51 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   ),
                 ),
               ),
+              if (_form.isError && _form.message != null) ...[
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.errorLight,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.errorBorder),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 18,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _form.message!,
+                          style: const TextStyle(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      if (_form.fieldErrors.isEmpty) ...[
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: _form.canSubmit ? _submitFeedback : null,
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text('Retry',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 36),
               ElevatedButton(
                 onPressed: _form.canSubmit ? _submitFeedback : null,
@@ -321,7 +389,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: _form.isSubmitting
+                child: isSubmitting
                     ? const SizedBox(
                         width: 20,
                         height: 20,
