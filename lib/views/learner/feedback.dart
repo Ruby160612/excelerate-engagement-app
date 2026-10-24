@@ -196,7 +196,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _form.valueOf('category'),
+                initialValue: _form.valueOf('category'),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.category_outlined,
                       color: textMuted, size: 20),
@@ -248,9 +248,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   activeTrackColor: brandOrange,
-                  inactiveTrackColor: brandOrange.withOpacity(0.15),
+                  inactiveTrackColor: brandOrange.withValues(alpha: 0.15),
                   thumbColor: brandOrange,
-                  overlayColor: brandOrange.withOpacity(0.12),
+                  overlayColor: brandOrange.withValues(alpha: 0.12),
                   valueIndicatorColor: brandOrange,
                 ),
                 child: Slider(

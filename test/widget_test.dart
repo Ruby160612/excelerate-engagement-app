@@ -21,7 +21,7 @@ void main() {
     await tester.tap(find.text('Create account'));
     await tester.pumpAndSettle();
     expect(find.text('Enter your invitation code'), findsOneWidget);
-    expect(find.text('Enter a valid email'), findsOneWidget);
+    expect(find.text('Please enter your email'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
