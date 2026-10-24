@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../utils/constants.dart';
 import 'app_button.dart';
 import 'page_layout.dart';
+import '../utils/validators.dart';
 
 class AuthForm extends StatefulWidget {
   const AuthForm({super.key, this.signup = false});
@@ -45,9 +46,18 @@ class _AuthFormState extends State<AuthForm> {
         await auth.login(_email.text, _password.text);
       }
       if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(
-            context, AppRoutes.home, (_) => false);
-      }
+  if (widget.signup) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Registration successful!'),
+        backgroundColor: Color(0xFFF14D0E),
+      ),
+    );
+  }
+
+  Navigator.pushNamedAndRemoveUntil(
+      context, AppRoutes.home, (_) => false);
+}
     } catch (_) {
       if (mounted) {
         setState(() => _error = widget.signup
@@ -95,11 +105,7 @@ class _AuthFormState extends State<AuthForm> {
                         keyboardType: TextInputType.emailAddress,
                         autofillHints: const [AutofillHints.email],
                         decoration: const InputDecoration(labelText: 'Email'),
-                        validator: (value) => value == null ||
-                                !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-                                    .hasMatch(value.trim())
-                            ? 'Enter a valid email'
-                            : null),
+                        validator: FormValidators.email,),
                     const SizedBox(height: 16),
                     TextFormField(
                         controller: _password,
@@ -113,15 +119,7 @@ class _AuthFormState extends State<AuthForm> {
                         ],
                         decoration:
                             const InputDecoration(labelText: 'Password'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Enter your password';
-                          }
-                          if (widget.signup && value.length < 8) {
-                            return 'Use at least 8 characters';
-                          }
-                          return null;
-                        }),
+                       validator: (value) =>FormValidators.password(value, signup: widget.signup),),
                     if (widget.signup) ...[
                       const SizedBox(height: 16),
                       TextFormField(
