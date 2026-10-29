@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../state/submission_controller.dart';
 import '../utils/constants.dart';
 import 'app_button.dart';
+import 'brand_logo.dart';
 import 'page_layout.dart';
 
 class AuthForm extends StatefulWidget {
@@ -82,21 +83,27 @@ class _AuthFormState extends State<AuthForm> {
   @override
   Widget build(BuildContext context) => PageLayout(
         title: AppConstants.name,
+        appBarTitle: const SizedBox.shrink(),
         child: AutofillGroup(
             child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const Center(child: BrandLogo(showTagline: true)),
+                    const SizedBox(height: 32),
                     Text(
                         widget.signup
                             ? 'Join your talent community'
                             : 'Welcome back',
+                        textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineMedium),
                     const SizedBox(height: 8),
-                    Text(widget.signup
-                        ? 'Create an account with your private invitation.'
-                        : 'Sign in to continue your development journey.'),
+                    Text(
+                        widget.signup
+                            ? 'Create an account with your private invitation.'
+                            : 'Sign in to continue your development journey.',
+                        textAlign: TextAlign.center),
                     const SizedBox(height: 24),
                     if (widget.signup) ...[
                       TextFormField(

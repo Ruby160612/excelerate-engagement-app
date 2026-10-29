@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/themes.dart';
+import '../../widgets/brand_logo.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -62,7 +64,7 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    const Color brandOrange = Color(0xFFFF4500);
+    const Color brandOrange = AppColors.primary;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -84,47 +86,12 @@ class _LoginViewState extends State<LoginView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 20),
-                    Center(
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.menu,
-                                  color: brandOrange, size: 28),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Excelerate',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: brandOrange,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Text(
-                            'TALENT HUB',
-                            style: TextStyle(
-                              fontSize: 12,
-                              letterSpacing: 2,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    const Center(child: BrandLogo(showTagline: true)),
                     const SizedBox(height: 40),
-                    const Center(
+                    Center(
                       child: Text(
                         'Welcome Back!',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
+                        style: Theme.of(context).textTheme.headlineMedium,
                       ),
                     ),
                     const SizedBox(height: 8),

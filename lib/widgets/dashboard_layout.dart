@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../utils/constants.dart';
 import 'page_layout.dart';
+import 'brand_logo.dart';
 
 class DashboardAction {
   const DashboardAction({
@@ -65,11 +66,7 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     return PageLayout(
       title: widget.title,
       maxWidth: 1120,
-      appBarTitle: Text('Excelerate',
-          style: TextStyle(
-              color: theme.colorScheme.primary,
-              fontStyle: FontStyle.italic,
-              fontWeight: FontWeight.bold)),
+      appBarTitle: const BrandLogo(showMark: false, size: 22),
       drawer: Drawer(
         child: SafeArea(
           child: ListView(
