@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../utils/validators.dart';
 import '../../state/submission_controller.dart';
+import '../../utils/themes.dart';
+import '../../widgets/brand_logo.dart';
 
 class FeedbackPage extends StatefulWidget {
   const FeedbackPage({super.key, this.onSubmit});
@@ -40,10 +42,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
     'Account Issue',
   ];
 
-  static const Color brandOrange = Color(0xFFF14D0E);
-  static const Color textDark = Color(0xFF1E1E1E);
-  static const Color textMuted = Color(0xFF6B696C);
-  static const Color borderGrey = Color(0xFFE0E0E0);
+  static const Color brandOrange = AppColors.primary;
+  static const Color textDark = AppColors.textPrimary;
+  static const Color textMuted = AppColors.textMuted;
+  static const Color borderGrey = AppColors.border;
 
   @override
   void initState() {
@@ -97,10 +99,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: const BackButton(color: textDark),
-        title: const Text(
-          'Feedback',
-          style: TextStyle(color: textDark, fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Feedback'),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -109,23 +108,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.sort, color: brandOrange, size: 24),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Excelerate'.toUpperCase(),
-                    style: const TextStyle(
-                      color: brandOrange,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      fontStyle: FontStyle.italic,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
+              const Center(child: BrandLogo()),
               const SizedBox(height: 24),
               const Text(
                 'We value your feedback',
@@ -159,11 +142,11 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 decoration: InputDecoration(
                   errorText: _form.errorOf('email'),
                   hintText: 'name@example.com',
-                  hintStyle: const TextStyle(color: Color(0xFFC2C2C2)),
+                  hintStyle: const TextStyle(color: AppColors.textHint),
                   prefixIcon: const Icon(Icons.email_outlined,
                       color: textMuted, size: 20),
                   filled: true,
-                  fillColor: const Color(0xFFFAFAFA),
+                  fillColor: AppColors.surfaceVariant,
                   contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -201,7 +184,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   prefixIcon: const Icon(Icons.category_outlined,
                       color: textMuted, size: 20),
                   filled: true,
-                  fillColor: const Color(0xFFFAFAFA),
+                  fillColor: AppColors.surfaceVariant,
                   contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -283,11 +266,11 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   hintText:
                       'Tell us what happened or what you\'d like to see...',
                   hintStyle: const TextStyle(
-                    color: Color(0xFFC2C2C2),
+                    color: AppColors.textHint,
                     fontSize: 14,
                   ),
                   filled: true,
-                  fillColor: const Color(0xFFFAFAFA),
+                  fillColor: AppColors.surfaceVariant,
                   contentPadding: const EdgeInsets.all(16),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -332,7 +315,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                         ),
                       )
                     : const Text(
-                        'SUBMIT FEEDBACK',
+                        'Submit feedback',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
