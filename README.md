@@ -91,54 +91,25 @@ The screenshots below show key UI screens from the app. The image files are stor
 
 ## Program Data Flow
 
-The program listing and the program details screens read data through one layer, so the data source can change without touching the screens.
+Program list, detail, registration and learner dashboard counts use typed models:
 
 ```text
-Screen (ProgramsListView / ProgramDetailsLoader)
-  -> ProgramRepository   (lib/services/program_repository.dart)
-    -> ApiService        (HTTP)
-      -> mock API when USE_MOCK=true, otherwise the real backend
+Program screens -> ProgramStore -> ProgramRepository -> ProgramService
+Detail loader / dashboard -> ProgramRepository -> ProgramService
+  -> MockProgramService -> existing MockApi + assets/data/programs.json
+  -> ApiProgramService -> existing HTTP API
+  -> FirebaseProgramService (placeholder; not enabled by default)
 ```
 
-| File | Role |
-| --- | --- |
-| `lib/models/program.dart` | `Program` model (`fromJson` / `toJson`) |
-| `lib/services/program_repository.dart` | `ProgramRepository` and `ApiProgramRepository`, plus the `ProgramException` error types |
-| `lib/services/mock_api.dart` | In-memory API used in mock mode |
-| `assets/data/programs.json` | Sample programs served by the mock API |
-| `lib/views/learner/programs_list.dart` | Listing with search, category filter and Register |
-| `lib/views/shared/program_details_loader.dart` | Loads one program by id and opens the details screen |
+`ExcelerateApp(programService: ...)` accepts another implementation without screen changes.
+Mock mode keeps the existing per-learner state, loading, search/category filters,
+empty states and manual retry controls. Registrations update subsequent reads;
+duplicates produce a typed `alreadyRegistered` error. Mock state resets on restart.
 
-Routes: the listing is `/learner/programs` and details is `/program-details/<id>`. Details loads the program by id, so it does not depend on the list.
-
-### Endpoints
-
-| Method | Endpoint | Notes |
-| --- | --- | --- |
-| GET | `/programs` | Array of programs. `is_registered` reflects the signed-in user |
-| GET | `/programs/:id` | One program. `404` if it does not exist |
-| POST | `/programs/:id/register` | Learner only. Returns the program with `is_registered: true`. `403` for admins |
-
-### Program record
-
-Required: `id`, `title`, `start_date` (ISO 8601) and `category` (for example `course`, `workshop`, `webinar` or `internship`).
-Optional: `description`, `end_date`, `schedule`, `eligibility` (array of strings), `outcomes` (array of strings), `image_url`, `is_registered`.
-
-### Errors
-
-| Kind | When | What the user sees |
-| --- | --- | --- |
-| Not found | `404` for a program id | "This program could not be found." with a back button |
-| Invalid data | Body is not JSON, wrong shape, a record is missing required fields, or the returned id does not match | Details: "This program's information is incomplete or invalid." In the list, broken records are skipped and a notice says how many ("The programs data is invalid." if the whole response is not a list) |
-| Unavailable | Offline, timeout or server error | "Unable to load ... Please try again." with Retry |
-
-### Working with the data layer
-
-- To change the sample programs, edit `assets/data/programs.json`.
-- To use a real backend, set `API_BASE_URL`. If its responses differ, only `ApiProgramRepository` needs to change.
-- The program list, the selected program and registration state are held by `ProgramStore` (see State Management below), which sits on top of `ProgramRepository`. `ProgramDetailsLoader` still loads one program by id on its own.
-- Registration goes through `ProgramStore.register`, so the list and the details screen show the same registered state.
-- Tests: `test/program_repository_test.dart` (repository against mocked HTTP and the mock API), `test/programs_list_test.dart`, `test/program_details_loader_test.dart` and `test/program_routes_test.dart`. Use `MockApi(programLoader: ...)` to inject bad data. `test/flutter_test_config.dart` pre-reads the sample programs for every test file.
+See [Program API contract](docs/PROGRAM_API_CONTRACT.md) for typed response shapes,
+legacy HTTP compatibility, database relationships, error/retry rules, the inspection
+inventory and the Firebase teammate handoff. Serialization uses the existing manual
+`fromJson` / `toJson` pattern; no code generator or live Firebase is required by tests.
 
 ### Mock mode sign-in
 
@@ -191,3 +162,102 @@ Refer to the product and UX design rationale here:
 ## Repository
 
 - GitHub: https://github.com/Ruby160612/excelerate-engagement-app
+
+
+###For Firebase Integration ###
+
+## Backend / Firebase Integration Handoff
+
+The backend/data integration layer has been prepared so the Flutter UI is no longer tightly coupled to mock JSON or a single backend implementation.
+
+The current architecture is:
+
+`UI → ProgramStore → ProgramRepository → ProgramService → Mock / API / Firebase implementation`
+
+This allows the team to continue using mock data locally while a real Firebase-backed implementation is completed later without rewriting the program screens.
+
+### Current State
+
+- Firebase has been configured for the project.
+- `firebase_core`, `firebase_auth`, and `cloud_firestore` are installed.
+- Firebase platform configuration files have been generated.
+- Program models and backend-ready response models are defined.
+- Program IDs and registration IDs use `String` values and are ready for Firebase document IDs.
+- Program search, filtering, details, registration, loading, error, and retry flows are routed through the shared data layer.
+- `ProgramService` defines the backend-facing contract.
+- `MockProgramService` provides the current local/mock implementation.
+- `ApiProgramService` supports the existing API-style path.
+- `FirebaseProgramService` exists as the boundary for the future Firestore implementation.
+- `ProgramRepository` sits between application state and the selected service implementation.
+- `ProgramStore` remains the UI-facing state layer.
+- Backend request/response shapes, identifiers, relationships, and error/retry expectations are documented in `docs/PROGRAM_API_CONTRACT.md`.
+
+### Mock Mode
+
+The existing mock backend is still available and should be used for local development until the Firebase backend is fully implemented.
+
+Run the app with:
+
+```bash
+flutter run --dart-define=USE_MOCK=true
+```
+
+With `USE_MOCK=true`, the app uses the existing mock authentication and mock program data.
+
+Without that flag, `USE_MOCK` defaults to `false` and the application follows the non-mock/backend path.
+
+### Firebase / Firestore Direction
+
+The expected Firebase data structure is based around:
+
+```text
+programs/{programId}
+```
+
+and:
+
+```text
+program_registrations/{registrationId}
+```
+
+A registration should reference:
+
+```text
+programId
+learnerId
+status
+registeredAt
+```
+
+The future Firebase implementation should preserve the same `ProgramService` behavior as the mock implementation so existing screens and `ProgramStore` do not need to be rewritten.
+
+### Validation Completed
+
+The integration has been validated with:
+
+```bash
+flutter analyze
+flutter test
+flutter build apk --debug
+```
+
+The application has also been successfully built, installed, launched, and debugged on a physical Android device.
+
+Mock-mode login and program flows have been verified with:
+
+```bash
+flutter run --dart-define=USE_MOCK=true
+```
+
+### Next Developer Steps
+
+The next backend developer should:
+
+1. Implement the real Firestore logic inside the Firebase service layer.
+2. Connect real authentication and learner identity to Firebase Auth.
+3. Persist program registrations in Firestore.
+4. Preserve the existing service contract and `ProgramStore` flow.
+5. Keep mock mode available for development and testing.
+6. Review `docs/PROGRAM_API_CONTRACT.md` before changing request/response behavior.
+
+There is currently a separate UI/data issue where the name entered during signup is not reflected consistently after login. This should be handled independently from the program backend integration unless the real authentication/profile implementation naturally resolves it.

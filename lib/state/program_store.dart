@@ -74,8 +74,8 @@ class ProgramStore extends ChangeNotifier {
       _syncSelectedFromList();
     } catch (error) {
       if (!quiet) {
-        _listError = _messageOf(
-            error, 'Unable to load this page. Please try again.');
+        _listError =
+            _messageOf(error, 'Unable to load this page. Please try again.');
         _listStatus = LoadStatus.error;
       }
     }
@@ -120,6 +120,21 @@ class ProgramStore extends ChangeNotifier {
     try {
       final updated = await _repository.register(id);
       _store(updated);
+    } on ProgramException catch (error) {
+      if (error.code == ProgramErrorCode.alreadyRegistered) {
+        // Reconcile all screens through shared state, rather than local flags.
+        final known = lookup(id);
+        if (known != null) {
+          _store(known.copyWith(isRegistered: true));
+        } else {
+          try {
+            _store(await _repository.fetchProgram(id));
+          } catch (_) {
+            // Keep the original duplicate error if this read cannot complete.
+          }
+        }
+      }
+      rethrow;
     } finally {
       _registering.remove(id);
       _notify();

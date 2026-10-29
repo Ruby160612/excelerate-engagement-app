@@ -18,7 +18,8 @@ class CandidateShortlistingView extends StatelessWidget {
             statusBadge: const StatusBadge.success(label: 'Shortlisted'),
             trailing: const Tooltip(
               message: 'Schedule interview',
-              child: Icon(Icons.calendar_month_outlined, color: Color(0xFFFF4500)),
+              child:
+                  Icon(Icons.calendar_month_outlined, color: Color(0xFFFF4500)),
             ),
             onTap: () => Navigator.pushNamed(
                 context, AppRoutes.interviewScheduler,

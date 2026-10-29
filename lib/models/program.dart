@@ -26,7 +26,7 @@ class Program {
   final bool isRegistered;
 
   factory Program.fromJson(Map<String, dynamic> json) => Program(
-        id: json['id'].toString(),
+        id: _id(json['id']),
         title: json['title'] as String,
         description: json['description'] as String? ?? '',
         startDate: DateTime.parse(json['start_date'] as String),
@@ -71,4 +71,13 @@ class Program {
 
   static List<String> _stringList(Object? value) =>
       value is List ? value.map((item) => item.toString()).toList() : const [];
+
+  static String _id(Object? value) {
+    // Retain numeric legacy API IDs while keeping the domain type a String.
+    if ((value is String || value is num) &&
+        value.toString().trim().isNotEmpty) {
+      return value.toString();
+    }
+    throw const FormatException('A program must have a non-empty ID.');
+  }
 }

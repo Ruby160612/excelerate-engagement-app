@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/program.dart';
+import '../../models/program_query.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
 import '../../services/program_repository.dart';
@@ -58,17 +59,8 @@ class _ProgramsListViewState extends State<ProgramsListView> {
   List<String> _categoriesOf(List<Program> programs) =>
       {for (final program in programs) program.category}.toList();
 
-  List<Program> _visibleOf(List<Program> programs) {
-    final query = _search.text.trim().toLowerCase();
-    return [
-      for (final program in programs)
-        if ((_category == null || program.category == _category) &&
-            (query.isEmpty ||
-                program.title.toLowerCase().contains(query) ||
-                program.description.toLowerCase().contains(query)))
-          program,
-    ];
-  }
+  List<Program> _visibleOf(List<Program> programs) =>
+      ProgramQuery(search: _search.text, category: _category).apply(programs);
 
   static String _label(String category) =>
       category[0].toUpperCase() + category.substring(1);

@@ -104,8 +104,7 @@ void main() {
     expect(store.selected?.id, '2');
   });
 
-  test('selecting an unknown program loads it, or reports not found',
-      () async {
+  test('selecting an unknown program loads it, or reports not found', () async {
     final pending = store.selectProgram('1');
     expect(store.selectedStatus, LoadStatus.loading);
     await pending;
@@ -155,6 +154,55 @@ void main() {
     repo.registerGate!.complete(_program('1', registered: true));
     await first;
     expect(store.isRegistering('1'), isFalse);
+  });
+
+  test('duplicate registration reconciles the list and selected program',
+      () async {
+    await store.loadPrograms();
+    await store.selectProgram('1');
+    const duplicate = ProgramException(ProgramFailure.unavailable,
+        'You are already registered for this program.',
+        code: ProgramErrorCode.alreadyRegistered);
+    repo.registerError = duplicate;
+
+    await expectLater(store.register('1'), throwsA(same(duplicate)));
+
+    expect(store.programById('1')!.isRegistered, isTrue);
+    expect(store.selected!.isRegistered, isTrue);
+    expect(store.isRegistering('1'), isFalse);
+    expect(repo.registerCalls, 1);
+  });
+
+  test(
+      'duplicate registration on a direct detail route reads the existing enrollment',
+      () async {
+    const duplicate = ProgramException(ProgramFailure.unavailable,
+        'You are already registered for this program.',
+        code: ProgramErrorCode.alreadyRegistered);
+    repo.registerError = duplicate;
+    repo.programs = [_program('1', registered: true)];
+
+    await expectLater(store.register('1'), throwsA(same(duplicate)));
+
+    expect(store.lookup('1')!.isRegistered, isTrue);
+    expect(repo.fetchCalls, 1);
+    expect(repo.registerCalls, 1);
+    expect(store.isRegistering('1'), isFalse);
+  });
+
+  test('a failed duplicate reconciliation preserves the original error',
+      () async {
+    const duplicate = ProgramException(ProgramFailure.unavailable,
+        'You are already registered for this program.',
+        code: ProgramErrorCode.alreadyRegistered);
+    repo.registerError = duplicate;
+    repo.programs = [];
+
+    await expectLater(store.register('1'), throwsA(same(duplicate)));
+
+    expect(store.lookup('1'), isNull);
+    expect(store.isRegistering('1'), isFalse);
+    expect(repo.registerCalls, 1);
   });
 
   test('registration flow: failure shows an error, retry then succeeds',

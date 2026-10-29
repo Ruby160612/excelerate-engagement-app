@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1006407632677",
+    "project_id": "excellerate-mobile-app",
+    "storage_bucket": "excellerate-mobile-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1006407632677:android:7ceb54e6e89edc22b87ccc",
+        "android_client_info": {
+          "package_name": "com.excelerate.excelerate_talent_hub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbECnzLFwLnA7Y0tN_RFZxPRZEoRHPHdU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

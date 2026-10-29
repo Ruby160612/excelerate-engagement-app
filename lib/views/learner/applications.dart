@@ -9,12 +9,12 @@ class ApplicationsView extends StatelessWidget {
   const ApplicationsView({super.key});
 
   static Widget _statusBadge(String status) => switch (status.toLowerCase()) {
-        'shortlisted' =>
-          const StatusBadge.success(label: 'Shortlisted', icon: Icons.check_circle_outline),
+        'shortlisted' => const StatusBadge.success(
+            label: 'Shortlisted', icon: Icons.check_circle_outline),
         'submitted' =>
           const StatusBadge.info(label: 'Submitted', icon: Icons.send_outlined),
-        'reviewing' =>
-          const StatusBadge.warning(label: 'In Review', icon: Icons.pending_outlined),
+        'reviewing' => const StatusBadge.warning(
+            label: 'In Review', icon: Icons.pending_outlined),
         _ => StatusBadge(label: status),
       };
 
@@ -25,7 +25,8 @@ class ApplicationsView extends StatelessWidget {
         emptyMessage: 'Your submitted applications will appear here.',
         itemBuilder: (item) {
           final status = (item['status'] as String?) ?? 'Submitted';
-          final createdAt = DateTime.parse(item['created_at'] as String).toLocal();
+          final createdAt =
+              DateTime.parse(item['created_at'] as String).toLocal();
           return AppCard(
             title: item['opportunity_title'] as String,
             icon: Icons.work_outline,

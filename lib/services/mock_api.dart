@@ -138,13 +138,27 @@ class MockApi {
         return _json(program);
       }
       if (segments.length == 3 &&
-          segments[2] == 'register' &&
+          (segments[2] == 'register' || segments[2] == 'registrations') &&
           request.method == 'POST') {
         if (admin) {
           return _error(403, 'Admins cannot register for programs.');
         }
-        _registrationsFor(account).add(segments[1]);
-        return _json({...program, 'is_registered': true});
+        if (!_registrationsFor(account).add(segments[1])) {
+          return _error(409, 'Already registered for this program.');
+        }
+        // This fake backend owns IDs, status and timestamps, just as a real
+        // trusted registration operation will. The Flutter request sends {}.
+        return _json({
+          ...program,
+          'is_registered': true,
+          'registration': {
+            'id': 'registration-${_nextId++}',
+            'programId': segments[1],
+            'learnerId': account.id,
+            'status': 'registered',
+            'registeredAt': DateTime.now().toUtc().toIso8601String(),
+          },
+        });
       }
     }
     if (request.method == 'PUT' && segments.firstOrNull == 'applications') {

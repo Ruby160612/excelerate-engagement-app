@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
+import '../../services/program_repository.dart';
 import '../../utils/constants.dart';
 import '../../widgets/dashboard_announcements.dart';
 import '../../widgets/dashboard_layout.dart';
@@ -10,6 +11,12 @@ import '../../widgets/dashboard_overview.dart';
 
 class DashboardView extends StatelessWidget {
   const DashboardView({super.key});
+
+  static Future<int> _registeredPrograms(BuildContext context) async =>
+      (await context.read<ProgramRepository>().fetchPrograms())
+          .programs
+          .where((program) => program.isRegistered)
+          .length;
 
   @override
   Widget build(BuildContext context) => DashboardLayout(
@@ -26,13 +33,11 @@ class DashboardView extends StatelessWidget {
           icon: Icons.school_outlined,
         ),
         overview: const DashboardOverview(metrics: [
-          DashboardMetric(
+          DashboardMetric.computed(
             label: 'Registered programs',
-            path: '/programs',
+            loadCount: _registeredPrograms,
             route: AppRoutes.programs,
             icon: Icons.school_outlined,
-            filterField: 'is_registered',
-            filterValue: true,
           ),
           DashboardMetric(
             label: 'Your badges',
