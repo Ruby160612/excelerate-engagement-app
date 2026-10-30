@@ -19,4 +19,11 @@ class StorageService {
       throw StateError('Unable to clear your saved session.');
     }
   }
+
+  String? cvName(String userId) =>
+      _preferences.getString('excelerate.cv.$userId');
+
+  Future<void> saveCvName(String userId, String filename) async {
+    await _preferences.setString('excelerate.cv.$userId', filename);
+  }
 }

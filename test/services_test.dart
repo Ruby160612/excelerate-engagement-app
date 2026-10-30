@@ -108,4 +108,16 @@ void main() {
     await api.uploadCv('cv.pdf', Uint8List.fromList([1, 2, 3]));
     expect(calls, 1);
   });
+
+  test('StorageService persists and retrieves CV filename per user', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = StorageService(await SharedPreferences.getInstance());
+    expect(storage.cvName('user-1'), isNull);
+    await storage.saveCvName('user-1', 'resume.pdf');
+    expect(storage.cvName('user-1'), 'resume.pdf');
+    expect(storage.cvName('user-2'), isNull);
+    await storage.saveCvName('user-2', 'portfolio_cv.docx');
+    expect(storage.cvName('user-2'), 'portfolio_cv.docx');
+    expect(storage.cvName('user-1'), 'resume.pdf');
+  });
 }

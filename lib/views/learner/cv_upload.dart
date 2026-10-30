@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/storage_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/themes.dart';
 import '../../widgets/app_button.dart';
@@ -20,6 +22,16 @@ class _CvUploadViewState extends State<CvUploadView> {
   PlatformFile? _file;
   String? _message;
   bool _isSuccess = false;
+  String? _existingCv;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = context.read<AuthService>().user;
+    if (user != null) {
+      _existingCv = context.read<StorageService>().cvName(user.id);
+    }
+  }
 
   Future<void> _pick() async {
     setState(() {
@@ -60,14 +72,21 @@ class _CvUploadViewState extends State<CvUploadView> {
   Future<void> _upload() async {
     final file = _file;
     if (file?.bytes == null) return;
+    final user = context.read<AuthService>().user;
+    final storage = context.read<StorageService>();
+    final api = context.read<ApiService>();
     setState(() {
       _busy = true;
       _message = null;
     });
     try {
-      await context.read<ApiService>().uploadCv(file!.name, file.bytes!);
+      await api.uploadCv(file!.name, file.bytes!);
+      if (user != null) {
+        await storage.saveCvName(user.id, file.name);
+      }
       if (mounted) {
         setState(() {
+          _existingCv = file.name;
           _file = null;
           _message = 'Your CV was uploaded successfully.';
           _isSuccess = true;
@@ -122,17 +141,59 @@ class _CvUploadViewState extends State<CvUploadView> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Choose your latest CV in PDF, DOC, or DOCX format. Maximum size: 5 MB.',
+                    _existingCv != null
+                        ? 'Upload a new CV to replace your current file (PDF, DOC, or DOCX, up to 5 MB).'
+                        : 'Choose your latest CV in PDF, DOC, or DOCX format. Maximum size: 5 MB.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: AppColors.textSecondary,
                     ),
                   ),
+                  if (_existingCv != null) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline,
+                              color: AppColors.success, size: 24),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Current CV on file',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _existingCv!,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   OutlinedButton.icon(
                     onPressed: _busy ? null : _pick,
                     icon: const Icon(Icons.attach_file),
-                    label: const Text('Choose CV'),
+                    label: Text(_existingCv != null
+                        ? 'Choose replacement CV'
+                        : 'Choose CV'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
