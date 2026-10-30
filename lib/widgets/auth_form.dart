@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../state/submission_controller.dart';
 import '../utils/constants.dart';
+import '../utils/validators.dart';
 import 'app_button.dart';
+import 'auth_switch_link.dart';
 import 'brand_logo.dart';
 import 'page_layout.dart';
 
@@ -33,6 +35,7 @@ class _AuthFormState extends State<AuthForm> {
   );
   bool get _busy => _form.isSubmitting;
   String? _error;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -84,6 +87,7 @@ class _AuthFormState extends State<AuthForm> {
   Widget build(BuildContext context) => PageLayout(
         title: AppConstants.name,
         appBarTitle: const SizedBox.shrink(),
+        maxWidth: 520,
         child: AutofillGroup(
             child: Form(
                 key: _formKey,
@@ -112,9 +116,7 @@ class _AuthFormState extends State<AuthForm> {
                               const InputDecoration(labelText: 'Full name'),
                           autofillHints: const [AutofillHints.name],
                           validator: (value) =>
-                              value == null || value.trim().isEmpty
-                                  ? 'Enter your name'
-                                  : null),
+                              Validators.required(value, 'Enter your name')),
                       const SizedBox(height: 16),
                     ],
                     TextFormField(
@@ -122,15 +124,11 @@ class _AuthFormState extends State<AuthForm> {
                         keyboardType: TextInputType.emailAddress,
                         autofillHints: const [AutofillHints.email],
                         decoration: const InputDecoration(labelText: 'Email'),
-                        validator: (value) => value == null ||
-                                !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-                                    .hasMatch(value.trim())
-                            ? 'Enter a valid email'
-                            : null),
+                        validator: Validators.email),
                     const SizedBox(height: 16),
                     TextFormField(
                         controller: _password,
-                        obscureText: true,
+                        obscureText: _obscurePassword,
                         enableSuggestions: false,
                         autocorrect: false,
                         autofillHints: [
@@ -138,27 +136,27 @@ class _AuthFormState extends State<AuthForm> {
                               ? AutofillHints.newPassword
                               : AutofillHints.password
                         ],
-                        decoration:
-                            const InputDecoration(labelText: 'Password'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Enter your password';
-                          }
-                          if (widget.signup && value.length < 8) {
-                            return 'Use at least 8 characters';
-                          }
-                          return null;
-                        }),
+                        decoration: InputDecoration(
+                            labelText: 'Password',
+                            suffixIcon: IconButton(
+                                tooltip: _obscurePassword
+                                    ? 'Show password'
+                                    : 'Hide password',
+                                icon: Icon(_obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined),
+                                onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword))),
+                        validator: (value) => Validators.password(value,
+                            checkLength: widget.signup)),
                     if (widget.signup) ...[
                       const SizedBox(height: 16),
                       TextFormField(
                           controller: _invitation,
                           decoration: const InputDecoration(
                               labelText: 'Invitation code'),
-                          validator: (value) =>
-                              value == null || value.trim().isEmpty
-                                  ? 'Enter your invitation code'
-                                  : null),
+                          validator: (value) => Validators.required(
+                              value, 'Enter your invitation code')),
                     ],
                     if (_error != null ||
                         context.watch<AuthService>().initializationError !=
@@ -177,17 +175,19 @@ class _AuthFormState extends State<AuthForm> {
                         label: widget.signup ? 'Create account' : 'Sign in',
                         loading: _busy,
                         onPressed: _submit),
-                    TextButton(
-                        onPressed: _busy
+                    const SizedBox(height: 8),
+                    AuthSwitchLink(
+                        prompt: widget.signup
+                            ? 'Already a member?'
+                            : 'Have an invitation?',
+                        action: widget.signup ? 'Sign in' : 'Create an account',
+                        onTap: _busy
                             ? null
                             : () => Navigator.pushReplacementNamed(
                                 context,
                                 widget.signup
                                     ? AppRoutes.login
-                                    : AppRoutes.signup),
-                        child: Text(widget.signup
-                            ? 'Already a member? Sign in'
-                            : 'Have an invitation? Create an account')),
+                                    : AppRoutes.signup)),
                   ],
                 ))),
       );
