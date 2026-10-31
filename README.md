@@ -261,3 +261,83 @@ The next backend developer should:
 6. Review `docs/PROGRAM_API_CONTRACT.md` before changing request/response behavior.
 
 There is currently a separate UI/data issue where the name entered during signup is not reflected consistently after login. This should be handled independently from the program backend integration unless the real authentication/profile implementation naturally resolves it.
+## Data Integration Verification Report
+
+**Verification date:** 31 October 2026 (Africa/Lagos)
+**Source revision:** `b8617e7`
+**Result:** Program retrieval and registration passed the existing automated tests. Feedback submission is blocked by a missing implementation, so the full acceptance criteria are not yet met.
+
+### Project structure and responsibilities
+
+| Location | Responsibility |
+| --- | --- |
+| `lib/main.dart` | Initializes the app and Provider dependencies; selects the mock client when `USE_MOCK=true`. |
+| `lib/models/` | Typed program, registration, user and response models with JSON parsing. |
+| `lib/services/` | Authentication, HTTP decoding, mock API, program service adapters, repository and local storage. Firebase program service is a placeholder. |
+| `lib/state/` | Shared program loading/registration state and form submission lifecycle. |
+| `lib/views/` | Authentication/onboarding, learner, admin and shared program screens. |
+| `lib/widgets/` | Reusable presentation components and form widgets. The active `app_card.dart` renders a styled tappable card; it makes no API requests. |
+| `lib/utils/` | Routes, access guards, validators, constants and theme. |
+| `assets/data/programs.json` | Eight sample programs used by the mock API. |
+| `test/` | Existing unit and widget tests, including app-level mock flows. |
+| `docs/` and platform folders | Design/API documentation and Flutter platform projects. |
+
+The verified mock program path is:
+
+```text
+Flutter screens -> ProgramStore / ProgramRepository -> MockProgramService
+  -> ApiProgramService -> ApiService -> MockApi -> programs.json
+```
+
+Authentication supplies the bearer token. Registration posts an empty object to `/programs/{id}/register`; the mock owns learner identity, registration ID, status and timestamp. Registration state is stored per learner in memory and reflected in later reads.
+
+### Method and reproduction
+
+Existing application and test source files were left unchanged. Tests ran on Windows using the installed Flutter SDK and existing dependencies:
+
+```powershell
+flutter test --no-pub --dart-define=USE_MOCK=true --reporter expanded
+```
+
+The first run completed with **149 tests passed, zero failures, exit code 0**. A sequential run was then made to preserve readable evidence for each test:
+
+```powershell
+flutter test --no-pub --dart-define=USE_MOCK=true --concurrency=1 --reporter expanded
+```
+
+See the [saved test transcript](docs/verification/mock-integration-2026-10-31.txt). The tests use an in-process `http.MockClient`, real JSON assets and Flutter widget rendering; no public mock server is contacted. Most mock tests use zero latency. This verifies the exercised UI-to-mock paths, not a browser/device deployment, real network, production backend or Firebase persistence. No new tests were added.
+
+### Test steps and outcomes
+
+| Check | Executed steps and assertions | Outcome / evidence |
+| --- | --- | --- |
+| Authentication and access | Log in with known credentials; reject a wrong password; request protected data without a token; check learner/admin access. | PASS: `test/mock_api_test.dart`, `test/routing_test.dart`. |
+| Data retrieval | Authenticate as `member@example.com`, GET `/programs`, parse typed models, fetch a known ID, request a missing ID. | PASS: eight programs; initial registration only for `prog-008`; `prog-003` title is `CV and Interview Workshop`; missing ID returns 404. See `test/mock_api_test.dart`. |
+| App loading and navigation | Sign in through `ExcelerateApp`; open program listing and a card; open a program directly by ID. | PASS: eight cards render; `Digital Skills Bootcamp` and `Nov 3, 2026` appear; selected detail IDs match. See `test/program_routes_test.dart`, `test/programs_list_test.dart`. |
+| Search and filtering | Search for internship, use Workshop/All chips, combine service search/category filters and request no matches. | PASS: internship search returns one card; Workshop returns two; All restores eight. See `test/programs_list_test.dart`, `test/program_service_test.dart`. |
+| Program registration | Register `prog-001`; read list/detail/repository again; attempt duplicate and concurrent registration; sign in as a second learner. | PASS: updated registration metadata references `u-member`; registered count becomes two; duplicate is rejected; concurrent requests yield one enrollment; the second learner remains unregistered for `prog-001`. See `test/program_service_test.dart`, `test/mock_api_test.dart`. |
+| Registration UI and dashboard | Tap Register in listing/details, return to listing/dashboard, inspect labels and counts. | PASS: listing changes from seven Register/one View to six Register/two View; detail enrollment state renders; dashboard count changes from one to two. See `test/programs_list_test.dart`, `test/design_system_and_components_test.dart`, `test/dashboard_test.dart`. |
+| Failures and recovery | Inject invalid records, malformed responses, HTTP errors, offline/timeout failures and failed refreshes; retry. | PASS: invalid records counted/skipped; safe errors shown; retry recovers; failed quiet refresh preserves data; failed registration retains Register. See repository/service/store/list/detail-loader tests. |
+| Account registration | Submit invalid/valid invitation codes to signup; verify learner role and incomplete profile; save profile; check signup input validation. | PASS for existing API, validation and onboarding tests. This is separate from program enrollment; a complete new-account signup UI journey is not established by these assertions alone. See `test/mock_api_test.dart`, `test/auth_alignment_test.dart`, `test/widget_test.dart`, `test/dashboard_test.dart`. |
+| Submission lifecycle | Exercise validation failure, successful action, failed action/retry, repeated submits and reset. | PASS for generic controller behavior: `test/submission_controller_test.dart`. These tests do not prove feedback submission. |
+| Feedback form submission | Search application screens, routes, service methods, mock handlers and tests for a feedback flow. | BLOCKED: no implemented feedback screen, route, endpoint or submission test was found. Comments and design color references are not an implementation. |
+
+### Evidence of successful data retrieval
+
+The [test transcript](docs/verification/mock-integration-2026-10-31.txt) records execution of these assertions against the mock and app:
+
+- `programs list matches the sample data for a learner`: retrieves eight parsed programs and the expected detail title.
+- `a learner opens the listing and a card opens its details`: renders eight program cards through the full app dependency wiring and opens `prog-003`.
+- `shows every program as a card`: checks the bootcamp title and formatted start date in rendered widgets.
+- `learner login shows personal counts and opens programs`: retrieves dashboard counts and verifies the count updates after registration.
+
+Assertion definitions are linked in [mock API tests](test/mock_api_test.dart), [app route tests](test/program_routes_test.dart), [listing tests](test/programs_list_test.dart) and [dashboard tests](test/dashboard_test.dart). The [source dataset](assets/data/programs.json) supplies the expected records. This is automated assertion evidence; existing README screenshots were not captured during this verification and are not presented as new test evidence.
+
+### Issues and remaining work
+
+1. **Feedback acceptance criterion is blocked.** Define the required fields, validation, authenticated endpoint, success response and failure/retry behavior, then implement and test the UI-to-mock flow. Application-code changes require the owner's permission.
+2. **Documentation overstates feedback wiring.** The earlier state-management section and controller comments refer to a Feedback form that does not exist in the inspected source. Signup already uses `SubmissionController`; the earlier wording that it is still being connected is also outdated.
+3. **Time-sensitive sample data needs a product decision.** `prog-003` ended on 24 October and `prog-005` ended on 29 October 2026. The mock registration handler has no date/eligibility check. Source inspection indicates past programs can still be registered for; this was not exercised as a separate runtime test and is a potential business-rule gap, not a confirmed violation of a supplied requirement.
+4. **Mock persistence is intentionally limited.** Sessions and enrollments are in memory and reset when the mock is recreated. These results do not certify durable storage or the placeholder Firebase implementation.
+
+Program loading and implemented registration behavior are verified within the automated mock scope. Overall sign-off remains open until feedback submission exists and can be tested end to end.
